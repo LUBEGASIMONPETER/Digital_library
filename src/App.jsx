@@ -9,9 +9,15 @@ import ForgotPassword from './Pages/ForgotPassword'
 import UserAgreement from './Pages/UserAgreement'
 import Contact from './Pages/Contact'
 import DashboardLayout from './Components/Layouts/DashboardLayout'
+import AdminLayout from './Components/Layouts/AdminLayout'
+import AdminHome from './Pages/AdminHome'
 import DashboardHome from './Pages/DashboardHome'
 import DashboardOverview from './Pages/DashboardOverview'
 import DashboardLibrary from './Pages/DashboardLibrary'
+import DashboardBorrowed from './Pages/DashboardBorrowed'
+import DashboardSettings from './Pages/DashboardSettings'
+import DashboardAnalytics from './Pages/DashboardAnalytics'
+import DashboardSupport from './Pages/DashboardSupport'
 import NotFound from './Pages/NotFound'
 
 function App() {
@@ -40,6 +46,15 @@ function App() {
       <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<DashboardOverview />} />
         <Route path="library" element={<DashboardLibrary />} />
+        <Route path="borrowed" element={<DashboardBorrowed />} />
+        <Route path="settings" element={<DashboardSettings />} />
+        <Route path="support" element={<DashboardSupport />} />
+        <Route path="analytics" element={<DashboardAnalytics />} />
+      </Route>
+
+      {/* Admin area (protected in a real app) */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminHome />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

@@ -92,13 +92,13 @@ const Sidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse = () 
             collapsed={collapsed} 
             isActive={location.pathname.includes('/borrowed')}
           />
-          <SidebarLink 
+          {/* <SidebarLink 
             to="/dashboard/reading-lists" 
             label="Reading Lists" 
             icon="📖" 
             collapsed={collapsed} 
             isActive={location.pathname.includes('/reading-lists')}
-          />
+          /> */}
           <SidebarLink 
             to="/dashboard/analytics" 
             label="Analytics" 
@@ -119,19 +119,19 @@ const Sidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse = () 
           
           {/* Quick Actions */}
           <SidebarLink 
-            to="/dashboard/help" 
+            to="/dashboard/support" 
             label="Help & Support" 
             icon="❓" 
             collapsed={collapsed} 
-            isActive={location.pathname.includes('/help')}
+            isActive={location.pathname.includes('/support')}
           />
-          <SidebarLink 
+          {/* <SidebarLink 
             to="/dashboard/feedback" 
             label="Send Feedback" 
             icon="💬" 
             collapsed={collapsed} 
             isActive={location.pathname.includes('/feedback')}
-          />
+          /> */}
         </nav>
 
         {/* User Profile & Footer */}
