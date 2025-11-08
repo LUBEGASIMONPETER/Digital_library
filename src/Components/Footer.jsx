@@ -13,7 +13,7 @@ const Footer = () => {
               </h3>
               <p className="text-gray-400">
                 Providing quality education since 1995.
-              </p>
+              </p> 
             </div>
 
             <div>
