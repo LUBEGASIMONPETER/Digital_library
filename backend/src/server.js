@@ -38,7 +38,29 @@ async function start() {
 
   // middleware
   const path = require('path')
-  app.use(cors());
+  // Configure CORS so preflight and error responses include the CORS headers.
+  // If FRONTEND_URL is set we only allow that origin (normalized). Otherwise allow any origin for convenience.
+  const frontendUrlRaw = String(process.env.FRONTEND_URL || '').trim()
+  const frontendUrl = frontendUrlRaw ? frontendUrlRaw.replace(/\/$/, '') : null
+
+  app.use((req, res, next) => {
+    // Allow the configured frontend origin or allow all when not set
+    const origin = req.get('origin') || ''
+    if (frontendUrl) {
+      if (origin && origin.replace(/\/$/, '').startsWith(frontendUrl)) {
+        res.setHeader('Access-Control-Allow-Origin', origin)
+      }
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Origin')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    // Let preflight requests short-circuit
+    if (req.method === 'OPTIONS') return res.sendStatus(204)
+    next()
+  })
+
   app.use(express.json());
 
   // serve uploaded files when Cloudinary is not configured (dev fallback)

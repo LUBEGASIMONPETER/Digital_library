@@ -81,6 +81,7 @@ router.get('/diag', async (req, res) => {
     const origin = String(req.get('origin') || req.get('referer') || '')
     const frontend = String(process.env.FRONTEND_URL || '')
     const mailerConfigured = Boolean((process.env.SMTP_HOST || process.env.MAILER_HOST) && (process.env.SMTP_USER || process.env.MAILER_USER) && (process.env.SMTP_PASS || process.env.MAILER_PASS))
+    const cloudinaryConfigured = Boolean(CLOUDINARY_CONFIGURED)
     const allowed = (() => {
       try {
         // use allowedFromFrontend logic but don't enforce NODE_ENV here
@@ -92,7 +93,7 @@ router.get('/diag', async (req, res) => {
         return 'error'
       }
     })()
-    return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured })
+    return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured, cloudinaryConfigured })
   } catch (err) {
     console.error('Diag error', err)
     return res.status(500).json({ message: 'Diag failed', error: err.message })
@@ -364,8 +365,8 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
         try {
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${coverFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
           const localPath = await writeBufferToUploads(coverFile.buffer, 'covers', filename)
-          // prefer absolute backend origin when available
-          const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`
+          // prefer absolute backend origin when available; otherwise build from the incoming request host
+          const backendOrigin = process.env.BACKEND_URL || (req.protocol + '://' + req.get('host'))
           coverUrl = backendOrigin + localPath
         } catch (fsErr) {
           console.error('Failed to write cover to local uploads', fsErr)
@@ -384,27 +385,8 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
           return res.status(502).json({ message: 'Failed to upload cover image', error: uplErr.message || String(uplErr) })
         }
       }
-      // basic mimetype validation
-      if (!coverFile.mimetype || !coverFile.mimetype.startsWith('image/')) {
-        return res.status(400).json({ message: 'Cover must be an image file' })
-      }
-      try {
-        const result = await uploadBufferToCloudinary(coverFile.buffer, { resource_type: 'image', folder: 'dlibrary/covers' })
-        coverUrl = result && result.secure_url ? result.secure_url : coverUrl
-      } catch (uplErr) {
-        console.error('Cloudinary cover upload failed', uplErr)
-        // fallback: try to write locally so uploads still work in dev
-        try {
-          const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${coverFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-          const localPath = await writeBufferToUploads(coverFile.buffer, 'covers', filename)
-          const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`
-          coverUrl = backendOrigin + localPath
-          console.warn('Fell back to local cover storage due to Cloudinary error')
-        } catch (fsErr) {
-          console.error('Fallback local write for cover also failed', fsErr)
-          return res.status(502).json({ message: 'Failed to upload cover image', error: uplErr.message || String(uplErr) })
-        }
-      }
+      // coverUrl was set above (either from local fallback or from Cloudinary when configured)
+      // No further upload attempt here — avoid duplicate uploads / errors when Cloudinary is not configured.
     }
 
     // handle uploaded book file (pdf) (if provided)
@@ -415,7 +397,7 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
         try {
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${bookFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
           const localPath = await writeBufferToUploads(bookFile.buffer, 'books', filename)
-          const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`
+          const backendOrigin = process.env.BACKEND_URL || (req.protocol + '://' + req.get('host'))
           fileUrl = backendOrigin + localPath
         } catch (fsErr) {
           console.error('Failed to write book file to local uploads', fsErr)
@@ -569,7 +551,7 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
           try {
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${coverFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
             const localPath = await writeBufferToUploads(coverFile.buffer, 'covers', filename)
-            const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`
+            const backendOrigin = process.env.BACKEND_URL || (req.protocol + '://' + req.get('host'))
             book.coverUrl = backendOrigin + localPath
             console.warn('Fell back to local cover storage due to Cloudinary error')
           } catch (fsErr) {
@@ -604,7 +586,7 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
           try {
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${bookFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
             const localPath = await writeBufferToUploads(bookFile.buffer, 'books', filename)
-            const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`
+            const backendOrigin = process.env.BACKEND_URL || (req.protocol + '://' + req.get('host'))
             book.fileUrl = backendOrigin + localPath
             console.warn('Fell back to local book file storage due to Cloudinary error')
           } catch (fsErr) {
