@@ -1,10 +1,22 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const User = require('../models/User');
+const debug = require('../config/debugStore');
 const { sendVerificationEmail } = require('../config/mailer');
 
 exports.register = async (req, res) => {
-  const { fullName, schoolName, location, gender, contact, email, password } = req.body;
+  // Accept either `fullName` (older client) or `name` (newer client) to be flexible.
+  const { fullName, name, schoolName, location, gender, contact, email, password } = req.body;
+  const resolvedName = (fullName || name || '').trim();
+
+  // Basic validation with clear 4xx responses to avoid 500s for client errors
+  if (!resolvedName) return res.status(400).json({ message: 'Name (fullName or name) is required' });
+  if (!email) return res.status(400).json({ message: 'Email is required' });
+  if (!password) return res.status(400).json({ message: 'Password is required' });
+
+  // Minimal, non-sensitive logging to aid debugging in production (no passwords printed)
+  console.log('Register attempt:', { email: String(email).toLowerCase().trim(), name: resolvedName, hasPassword: !!password });
+
   try {
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ message: 'User already exists' });
@@ -13,7 +25,7 @@ exports.register = async (req, res) => {
     const hashed = await bcrypt.hash(password, salt);
 
     user = new User({
-      name: fullName,
+      name: resolvedName,
       schoolName,
       location,
       gender,
@@ -39,11 +51,18 @@ exports.register = async (req, res) => {
   const verifyLink = `${frontend}/auth/verify?token=${token}`;
 
   // send verification email (if SMTP configured, will send; otherwise logged to console)
-  await sendVerificationEmail(email, { link: verifyLink, code });
+  try {
+    await sendVerificationEmail(email, { link: verifyLink, code });
+  } catch (mailErr) {
+    // Don't fail the registration if email sending fails. Log for diagnostics.
+    console.error('Error sending verification email for', email, mailErr && mailErr.message ? mailErr.message : mailErr);
+    // Note: we intentionally continue to return 201 so users can still register even if SMTP is down.
+  }
 
     return res.status(201).json({ message: 'Account created. Verification email sent.' });
   } catch (err) {
-    console.error(err);
+    console.error('Register error', err && err.message ? err.message : err, err && err.stack ? err.stack.split('\n')[0] : '')
+    try { debug.setLastError(err) } catch (e) {}
     return res.status(500).json({ message: 'Server error' });
   }
 };

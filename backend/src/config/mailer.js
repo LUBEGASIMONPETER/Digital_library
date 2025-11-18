@@ -27,10 +27,14 @@ if (mailHost && mailUser && mailPass) {
                 mailerReady = true
                 console.log('Mailer transporter verified')
             })
-            .catch(err => {
-                mailerReady = false
-                console.error('Mailer transporter verification failed:', err && err.message ? err.message : err)
-            })
+                    .catch(err => {
+                                    mailerReady = false
+                                    console.error('Mailer transporter verification failed:', err && err.message ? err.message : err)
+                                    try {
+                                        const debug = require('./debugStore')
+                                        debug.setLastError(err)
+                                    } catch (e) {}
+                            })
 } else {
     // transporter remains null - we'll fallback to logging links for dev
 }

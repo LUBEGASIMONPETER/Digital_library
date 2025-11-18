@@ -89,6 +89,14 @@ router.get('/diag', async (req, res) => {
       mailerReady = false
     }
     const cloudinaryConfigured = Boolean(CLOUDINARY_CONFIGURED)
+    // include last non-sensitive error (if any) to help debug production issues
+    let lastError = null
+    try {
+      const debug = require('../config/debugStore')
+      lastError = debug.getLastError()
+    } catch (e) {
+      lastError = null
+    }
   // also show the platform-configured allowed origins (if any)
   const rawAllowed = String(process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
   const allowedOrigins = rawAllowed ? rawAllowed.split(',').map(s => String(s).trim()) : []
@@ -103,7 +111,7 @@ router.get('/diag', async (req, res) => {
         return 'error'
       }
     })()
-    return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured, mailerReady, cloudinaryConfigured, allowedOrigins })
+  return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured, mailerReady, cloudinaryConfigured, allowedOrigins, lastError })
   } catch (err) {
     console.error('Diag error', err)
     return res.status(500).json({ message: 'Diag failed', error: err.message })
