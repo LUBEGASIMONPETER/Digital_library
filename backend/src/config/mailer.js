@@ -2,18 +2,26 @@ const nodemailer = require("nodemailer");
 
 let transporter = null;
 
-if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+// Support both SMTP_* and MAILER_* environment variable names to match .env.example and common conventions.
+const mailHost = process.env.SMTP_HOST || process.env.MAILER_HOST || '';
+const mailPort = Number(process.env.SMTP_PORT || process.env.MAILER_PORT || 0) || 587;
+const mailSecure = (process.env.SMTP_SECURE || process.env.MAILER_SECURE || 'false') === 'true';
+const mailUser = process.env.SMTP_USER || process.env.MAILER_USER || '';
+const mailPass = process.env.SMTP_PASS || process.env.MAILER_PASS || '';
+const mailFrom = process.env.SMTP_FROM || process.env.MAILER_FROM || process.env.SMTP_USER || process.env.MAILER_USER || '';
+
+if (mailHost && mailUser && mailPass) {
+    transporter = nodemailer.createTransport({
+        host: mailHost,
+        port: mailPort,
+        secure: mailSecure,
+        auth: {
+            user: mailUser,
+            pass: mailPass,
+        },
+    });
 } else {
-  // transporter remains null - we'll fallback to logging links for dev
+    // transporter remains null - we'll fallback to logging links for dev
 }
 
 async function sendVerificationEmail(to, link) {
