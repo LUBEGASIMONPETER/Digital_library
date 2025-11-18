@@ -39,23 +39,33 @@ async function start() {
   // middleware
   const path = require('path')
   // Configure CORS so preflight and error responses include the CORS headers.
-  // If FRONTEND_URL is set we only allow that origin (normalized). Otherwise allow any origin for convenience.
-  const frontendUrlRaw = String(process.env.FRONTEND_URL || '').trim()
-  const frontendUrl = frontendUrlRaw ? frontendUrlRaw.replace(/\/$/, '') : null
+  // Support a comma-separated list of frontend origins via FRONTEND_URLS for
+  // flexibility (backwards-compatible with FRONTEND_URL).
+  const frontendUrlsRaw = String(process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '').trim()
+  // Build an array of normalized origins (no trailing slash) if provided.
+  const allowedOrigins = frontendUrlsRaw
+    ? frontendUrlsRaw.split(',').map(s => String(s).trim().replace(/\/$/, '')).filter(Boolean)
+    : []
 
   app.use((req, res, next) => {
-    // Allow the configured frontend origin or allow all when not set
-    const origin = req.get('origin') || ''
-    if (frontendUrl) {
-      if (origin && origin.replace(/\/$/, '').startsWith(frontendUrl)) {
+    const origin = (req.get('origin') || '').replace(/\/$/, '')
+
+    if (allowedOrigins.length > 0) {
+      // If origin matches one of the allowedOrigins, echo it back. This is
+      // required when Access-Control-Allow-Credentials is true.
+      if (origin && allowedOrigins.some(a => origin === a || origin.startsWith(a))) {
         res.setHeader('Access-Control-Allow-Origin', origin)
+        res.setHeader('Vary', 'Origin')
       }
     } else {
+      // No allowed origins configured: allow all origins (development convenience)
       res.setHeader('Access-Control-Allow-Origin', '*')
     }
+
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Origin')
     res.setHeader('Access-Control-Allow-Credentials', 'true')
+
     // Let preflight requests short-circuit
     if (req.method === 'OPTIONS') return res.sendStatus(204)
     next()

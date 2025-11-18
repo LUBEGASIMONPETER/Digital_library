@@ -60,6 +60,9 @@ Allowing admin frontend access in production
 
 By default some admin routes are development-only. To allow your Netlify frontend to call admin endpoints (so the dashboard can list users), set the following env var on Render:
 
-	FRONTEND_URL=https://thedigitallibrarynewapp.netlify.app
+	# You can allow multiple frontends by setting FRONTEND_URLS (comma-separated)
+	# Example:
+	# FRONTEND_URLS=https://thedigitallibrarynewapp.netlify.app,https://thedigitallibraryapp.netlify.app
+	FRONTEND_URLS=https://thedigitallibrarynewapp.netlify.app
 
 When `FRONTEND_URL` is set the backend will accept requests originating from that origin for admin routes. This is a lightweight restriction to avoid exposing admin endpoints to arbitrary origins. For production security you should implement proper authentication and authorization (JWTs, role checks) — using `FRONTEND_URL` is only a convenience for this scaffold.
