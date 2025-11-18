@@ -43,6 +43,18 @@ function uploadBufferToCloudinary(buffer, options = {}) {
 // treat an incorrectly formatted CLOUDINARY_URL as "configured" and crash.
 const CLOUDINARY_CONFIGURED = Boolean(cloudinary && cloudinary._configured)
 
+// Helper: in production, only allow requests from the configured frontend origin
+function allowedFromFrontend(req) {
+  if (process.env.NODE_ENV !== 'production') return true
+  const origin = String(req.get('origin') || req.get('referer') || '')
+  const allowed = String(process.env.FRONTEND_URL || '')
+  if (!allowed) return false
+  // normalize by removing trailing slash so values like 'https://site/' and 'https://site' match
+  const normalizedOrigin = origin.replace(/\/$/, '')
+  const normalizedAllowed = allowed.replace(/\/$/, '')
+  return normalizedOrigin.startsWith(normalizedAllowed)
+}
+
 // POST /api/admin/test-email
 // body: { to: string, link?: string }
 router.post('/test-email', async (req, res) => {
@@ -73,8 +85,8 @@ router.get('/unverified', async (req, res) => {
 // GET /api/admin/user?email=someone@example.com
 // Development-only: return verification fields for a single user (no password)
 router.get('/user', async (req, res) => {
-  // Protect this endpoint in production
-  if (process.env.NODE_ENV === 'production') {
+  // Protect this endpoint in production unless request originates from FRONTEND_URL
+  if (!allowedFromFrontend(req)) {
     return res.status(403).json({ message: 'Forbidden in production' });
   }
 
@@ -96,8 +108,8 @@ router.get('/user', async (req, res) => {
 // GET /api/admin/users
 // Return a list of users (development helper). Excludes password.
 router.get('/users', async (req, res) => {
-  // Protect this endpoint in production
-  if (process.env.NODE_ENV === 'production') {
+  // Protect this endpoint in production unless request originates from FRONTEND_URL
+  if (!allowedFromFrontend(req)) {
     return res.status(403).json({ message: 'Forbidden in production' });
   }
 
@@ -135,7 +147,7 @@ router.get('/users', async (req, res) => {
 // PUT /api/admin/users/:id/ban
 // Mark the user as banned (deactivated, not deleted)
 router.put('/users/:id/ban', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (!allowedFromFrontend(req)) {
     return res.status(403).json({ message: 'Forbidden in production' });
   }
   const { id } = req.params
@@ -159,7 +171,7 @@ router.put('/users/:id/ban', async (req, res) => {
 // PUT /api/admin/users/:id/suspend
 // Body: { until: ISODateString }
 router.put('/users/:id/suspend', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (!allowedFromFrontend(req)) {
     return res.status(403).json({ message: 'Forbidden in production' });
   }
   const { id } = req.params
@@ -187,7 +199,7 @@ router.put('/users/:id/suspend', async (req, res) => {
 // PUT /api/admin/users/:id/unsuspend
 // Remove suspension and reactivate the user immediately
 router.put('/users/:id/unsuspend', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (!allowedFromFrontend(req)) {
     return res.status(403).json({ message: 'Forbidden in production' });
   }
   const { id } = req.params
@@ -212,7 +224,7 @@ router.put('/users/:id/unsuspend', async (req, res) => {
 // PUT /api/admin/users/:id/role
 // Update a user's role (member, librarian, admin)
 router.put('/users/:id/role', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (!allowedFromFrontend(req)) {
     return res.status(403).json({ message: 'Forbidden in production' });
   }
   const { id } = req.params
@@ -239,7 +251,7 @@ router.put('/users/:id/role', async (req, res) => {
 // DELETE /api/admin/users/:id
 // Soft-delete a user (mark as deleted, recoverable)
 router.delete('/users/:id', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (!allowedFromFrontend(req)) {
     return res.status(403).json({ message: 'Forbidden in production' });
   }
   const { id } = req.params

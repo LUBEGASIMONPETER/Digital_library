@@ -54,3 +54,12 @@ After adding env vars on Render, redeploy the service. You can test email sendin
 	POST /api/admin/test-email  { "to": "you@example.com" }
 
 The server will log an error if SMTP configuration fails; check Render service logs for delivery errors.
+
+Allowing admin frontend access in production
+-------------------------------------------
+
+By default some admin routes are development-only. To allow your Netlify frontend to call admin endpoints (so the dashboard can list users), set the following env var on Render:
+
+	FRONTEND_URL=https://thedigitallibraryapp.netlify.app
+
+When `FRONTEND_URL` is set the backend will accept requests originating from that origin for admin routes. This is a lightweight restriction to avoid exposing admin endpoints to arbitrary origins. For production security you should implement proper authentication and authorization (JWTs, role checks) — using `FRONTEND_URL` is only a convenience for this scaffold.
