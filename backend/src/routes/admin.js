@@ -76,9 +76,12 @@ router.post('/test-email', async (req, res) => {
 router.get('/diag', async (req, res) => {
   try {
     const origin = String(req.get('origin') || req.get('referer') || '')
-    const frontend = String(process.env.FRONTEND_URL || '')
+  const frontend = String(process.env.FRONTEND_URL || '')
     const mailerConfigured = Boolean((process.env.SMTP_HOST || process.env.MAILER_HOST) && (process.env.SMTP_USER || process.env.MAILER_USER) && (process.env.SMTP_PASS || process.env.MAILER_PASS))
     const cloudinaryConfigured = Boolean(CLOUDINARY_CONFIGURED)
+  // also show the platform-configured allowed origins (if any)
+  const rawAllowed = String(process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
+  const allowedOrigins = rawAllowed ? rawAllowed.split(',').map(s => String(s).trim()) : []
     const allowed = (() => {
       try {
         // use allowedFromFrontend logic but don't enforce NODE_ENV here
@@ -90,7 +93,7 @@ router.get('/diag', async (req, res) => {
         return 'error'
       }
     })()
-    return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured, cloudinaryConfigured })
+    return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured, cloudinaryConfigured, allowedOrigins })
   } catch (err) {
     console.error('Diag error', err)
     return res.status(500).json({ message: 'Diag failed', error: err.message })

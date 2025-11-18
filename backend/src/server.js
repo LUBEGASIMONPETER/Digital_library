@@ -47,13 +47,26 @@ async function start() {
     ? frontendUrlsRaw.split(',').map(s => String(s).trim().replace(/\/$/, '')).filter(Boolean)
     : []
 
+  // If no FRONTEND_URLS configured in production, include the known Netlify
+  // frontend host used by this project as a safe fallback so deployed frontends
+  // can still function until environment variables are updated on the host.
+  // NOTE: this is a pragmatic temporary fallback — for best security set
+  // FRONTEND_URLS explicitly on the deployment platform.
+  const fallbackNetlifyOrigins = [
+    'https://thedigitallibrarynewapp.netlify.app',
+    'https://thedigitallibraryapp.netlify.app'
+  ]
+  const effectiveAllowedOrigins = (allowedOrigins.length > 0)
+    ? allowedOrigins
+    : (process.env.NODE_ENV === 'production' ? fallbackNetlifyOrigins : [])
+
   app.use((req, res, next) => {
     const origin = (req.get('origin') || '').replace(/\/$/, '')
 
-    if (allowedOrigins.length > 0) {
-      // If origin matches one of the allowedOrigins, echo it back. This is
+    if (effectiveAllowedOrigins.length > 0) {
+      // If origin matches one of the effectiveAllowedOrigins, echo it back. This is
       // required when Access-Control-Allow-Credentials is true.
-      if (origin && allowedOrigins.some(a => origin === a || origin.startsWith(a))) {
+      if (origin && effectiveAllowedOrigins.some(a => origin === a || origin.startsWith(a))) {
         res.setHeader('Access-Control-Allow-Origin', origin)
         res.setHeader('Vary', 'Origin')
       }
