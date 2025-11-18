@@ -48,7 +48,11 @@ function allowedFromFrontend(req) {
   if (process.env.NODE_ENV !== 'production') return true
   const origin = String(req.get('origin') || req.get('referer') || '')
   const allowed = String(process.env.FRONTEND_URL || '')
-  if (!allowed) return false
+  if (!allowed) {
+    // No FRONTEND_URL configured — allow requests but log a warning in production.
+    console.warn('FRONTEND_URL not set; allowing admin requests from any origin in production — consider setting FRONTEND_URL for tighter security')
+    return true
+  }
   // normalize by removing trailing slash so values like 'https://site/' and 'https://site' match
   const normalizedOrigin = origin.replace(/\/$/, '')
   const normalizedAllowed = allowed.replace(/\/$/, '')
