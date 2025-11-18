@@ -78,6 +78,16 @@ router.get('/diag', async (req, res) => {
     const origin = String(req.get('origin') || req.get('referer') || '')
   const frontend = String(process.env.FRONTEND_URL || '')
     const mailerConfigured = Boolean((process.env.SMTP_HOST || process.env.MAILER_HOST) && (process.env.SMTP_USER || process.env.MAILER_USER) && (process.env.SMTP_PASS || process.env.MAILER_PASS))
+    // Attempt to detect transporter readiness if mailer module exposes a checker
+    let mailerReady = false
+    try {
+      const mailer = require('../config/mailer')
+      if (mailer && typeof mailer.isMailerReady === 'function') {
+        mailerReady = !!mailer.isMailerReady()
+      }
+    } catch (e) {
+      mailerReady = false
+    }
     const cloudinaryConfigured = Boolean(CLOUDINARY_CONFIGURED)
   // also show the platform-configured allowed origins (if any)
   const rawAllowed = String(process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
@@ -93,7 +103,7 @@ router.get('/diag', async (req, res) => {
         return 'error'
       }
     })()
-    return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured, cloudinaryConfigured, allowedOrigins })
+    return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured, mailerReady, cloudinaryConfigured, allowedOrigins })
   } catch (err) {
     console.error('Diag error', err)
     return res.status(500).json({ message: 'Diag failed', error: err.message })

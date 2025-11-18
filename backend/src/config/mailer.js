@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 
 let transporter = null;
+let mailerReady = false;
 
 // Support both SMTP_* and MAILER_* environment variable names to match .env.example and common conventions.
 const mailHost = process.env.SMTP_HOST || process.env.MAILER_HOST || '';
@@ -20,6 +21,16 @@ if (mailHost && mailUser && mailPass) {
             pass: mailPass,
         },
     });
+        // Verify transporter connectivity asynchronously and record status
+        transporter.verify()
+            .then(() => {
+                mailerReady = true
+                console.log('Mailer transporter verified')
+            })
+            .catch(err => {
+                mailerReady = false
+                console.error('Mailer transporter verification failed:', err && err.message ? err.message : err)
+            })
 } else {
     // transporter remains null - we'll fallback to logging links for dev
 }
@@ -202,15 +213,20 @@ async function sendVerificationEmail(to, link) {
     console.log(`Subject: ${subject}`);
     console.log(html);
     console.log("=====================================================");
-    return;
+        return { logged: true }
   }
-
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to,
-    subject,
-    html,
-  });
+    try {
+        const info = await transporter.sendMail({
+            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+            to,
+            subject,
+            html,
+        })
+        return info
+    } catch (err) {
+        console.error('Failed to send verification email', err && err.message ? err.message : err)
+        throw err
+    }
 }
 
 module.exports = { sendVerificationEmail };
@@ -419,15 +435,20 @@ async function sendAccountActionEmail(to, opts = {}) {
         console.log(`Subject: ${subject}`);
         console.log('HTML content would be sent with account action details');
         console.log('=====================================================');
-        return;
+        return { logged: true }
     }
-
-    await transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to,
-        subject,
-        html
-    });
+    try {
+        const info = await transporter.sendMail({
+            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+            to,
+            subject,
+            html
+        })
+        return info
+    } catch (err) {
+        console.error('Failed to send account action email', err && err.message ? err.message : err)
+        throw err
+    }
 }
 
-module.exports = { sendVerificationEmail, sendAccountActionEmail };
+module.exports = { sendVerificationEmail, sendAccountActionEmail, isMailerReady: () => mailerReady };
