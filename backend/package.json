@@ -5,19 +5,20 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "test-mail": "node tools/send_test_email.js"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.8.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
-  "mongoose": "^7.0.4",
-    "nodemailer": "^6.9.3",
-    "cloudinary": "^1.33.0",
-    "multer": "^1.4.5-lts.1"
+    "mongoose": "^7.0.4",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^7.0.10"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
