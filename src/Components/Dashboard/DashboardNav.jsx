@@ -1,5 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { apiFetch } from '../../lib/api'
+import { useAuth } from '../../contexts/AuthContext'
 
 // For now we accept a mock user object or fallback to a sample
 const mockUser = { 
@@ -8,12 +10,13 @@ const mockUser = {
   level: 'A-Level Science'
 }
 
-const DashboardNav = ({ onToggleSidebar, collapsed = false, user = mockUser }) => {
+const DashboardNav = ({ onToggleSidebar, collapsed = false, user: propUser }) => {
   const [open, setOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const menuRef = useRef(null)
   const notificationsRef = useRef(null)
   const navigate = useNavigate()
+  const { user: authUser, signOut } = useAuth()
 
   useEffect(() => {
     function handleClick(e) {
@@ -28,12 +31,39 @@ const DashboardNav = ({ onToggleSidebar, collapsed = false, user = mockUser }) =
     return () => document.removeEventListener('click', handleClick)
   }, [])
 
-  const initial = user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'
+  const user = propUser || authUser || mockUser
+  const displayName = user?.name || user?.fullName || ''
+  const displaySchool = user?.schoolName || user?.school || ''
+  const initial = (displayName.charAt(0) || 'U').toUpperCase()
 
-  const handleSignOut = () => {
-    // Add sign out logic here
-    console.log('Signing out...')
-    navigate('/auth/login')
+  const handleSignOut = async () => {
+    // Clear common client-side auth storage and attempt server-side logout if available.
+    try {
+      // Attempt server logout (optional; endpoint may not exist yet)
+      try {
+  await apiFetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+      } catch (err) {
+        // ignore - backend may not implement logout yet
+      }
+
+      // Remove common localStorage keys used for auth (non-destructive if not present)
+      const keys = ['token', 'accessToken', 'auth', 'user', 'currentUser']
+      keys.forEach(k => {
+        try { localStorage.removeItem(k) } catch (e) { /* ignore */ }
+      })
+
+      // Optionally clear sessionStorage as well
+      try { sessionStorage.removeItem('auth') } catch (e) { /* ignore */ }
+
+      // Notify auth context to clear user
+      try { signOut() } catch (e) { /* ignore */ }
+      // Navigate to login page
+      navigate('/auth/login')
+    } catch (err) {
+      console.error('Sign out failed', err)
+      // Fallback navigation
+      navigate('/auth/login')
+    }
   }
 
   const notifications = [
@@ -63,12 +93,12 @@ const DashboardNav = ({ onToggleSidebar, collapsed = false, user = mockUser }) =
         </button>
         
         <div className="hidden md:block">
-          <h1 className="text-xl font-bold text-gray-900">Welcome back, {user.fullName.split(' ')[0]}! 👋</h1>
+          <h1 className="text-xl font-bold text-gray-900">Welcome back, {displayName.split(' ')[0] || displayName}! 👋</h1>
           <p className="text-sm text-gray-500">Ready to continue your learning journey?</p>
         </div>
         
         <div className="md:hidden">
-          <h3 className="text-lg font-semibold text-gray-900">{user.fullName.split(' ')[0]}</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{displayName.split(' ')[0] || displayName}</h3>
         </div>
       </div>
 
@@ -149,8 +179,8 @@ const DashboardNav = ({ onToggleSidebar, collapsed = false, user = mockUser }) =
               {initial}
             </div>
             <div className="hidden md:block text-left">
-              <p className="text-sm font-semibold text-gray-900">{user.fullName}</p>
-              <p className="text-xs text-gray-500">{user.school}</p>
+              <p className="text-sm font-semibold text-gray-900">{displayName}</p>
+              <p className="text-xs text-gray-500">{displaySchool}</p>
             </div>
             <svg 
               className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} 
@@ -171,8 +201,8 @@ const DashboardNav = ({ onToggleSidebar, collapsed = false, user = mockUser }) =
                     {initial}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{user.fullName}</p>
-                    <p className="text-sm text-gray-600 truncate">{user.school}</p>
+              <p className="font-semibold text-gray-900 truncate">{displayName}</p>
+              <p className="text-sm text-gray-600 truncate">{displaySchool}</p>
                     <p className="text-xs text-gray-500">{user.level}</p>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 const AdminHome = () => {
   // Sample data - in real app, this would come from API
@@ -48,6 +49,11 @@ const AdminHome = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
               <p className="text-lg text-gray-600 mt-2">Welcome back! Here's what's happening today.</p>
+              {/* show admin email when available */}
+              {/** useAuth provides the logged-in user (dev-only storage) */}
+              {typeof window !== 'undefined' && (
+                <AdminEmailBadge />
+              )}
             </div>
             <div className="flex items-center gap-3">
               <div className="text-sm text-gray-500">Last updated: Just now</div>
@@ -234,3 +240,20 @@ const AdminHome = () => {
 }
 
 export default AdminHome
+
+function AdminEmailBadge() {
+  const { user } = useAuth()
+  const email = user?.email || ''
+  const isDev = import.meta.env?.DEV
+
+  if (!email && !isDev) return null
+
+  return (
+    <div className="mt-2 flex items-center gap-3">
+      {email && <div className="text-sm text-gray-700">Signed in as <span className="font-medium">{email}</span></div>}
+      {isDev && (
+        <div className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full border border-yellow-200">Development mode</div>
+      )}
+    </div>
+  )
+}

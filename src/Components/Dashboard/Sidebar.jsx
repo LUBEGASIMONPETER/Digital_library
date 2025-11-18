@@ -74,21 +74,37 @@ const Sidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse = () 
           <SidebarLink 
             to="/dashboard" 
             label="Overview" 
-            icon="📊" 
+            icon={
+              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="3" width="4" height="18" rx="1" />
+                <rect x="10" y="8" width="4" height="13" rx="1" />
+                <rect x="17" y="13" width="4" height="8" rx="1" />
+              </svg>
+            } 
             collapsed={collapsed} 
             isActive={location.pathname === '/dashboard'}
           />
           <SidebarLink 
             to="/dashboard/library" 
             label="Library" 
-            icon="📚" 
+            icon={
+              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 5a2 2 0 012-2h11a2 2 0 012 2v13a1 1 0 01-1 1H6a1 1 0 01-1-1V5z" />
+                <path d="M21 6h-2v12h2a1 1 0 001-1V7a1 1 0 00-1-1z" />
+              </svg>
+            } 
             collapsed={collapsed} 
             isActive={location.pathname.includes('/library')}
           />
           <SidebarLink 
             to="/dashboard/borrowed" 
             label="Borrowed Books" 
-            icon="⏰" 
+            icon={
+              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="8" strokeWidth="1.5" />
+                <path d="M12 8v5l3 2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            } 
             collapsed={collapsed} 
             isActive={location.pathname.includes('/borrowed')}
           />
@@ -102,14 +118,24 @@ const Sidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse = () 
           <SidebarLink 
             to="/dashboard/analytics" 
             label="Analytics" 
-            icon="📈" 
+            icon={
+              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="3 17 9 11 13 15 21 7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="21 21 21 7 7 7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            } 
             collapsed={collapsed} 
             isActive={location.pathname.includes('/analytics')}
           />
           <SidebarLink 
             to="/dashboard/settings" 
             label="Settings" 
-            icon="⚙️" 
+            icon={
+              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 15.5A3.5 3.5 0 1112 8.5a3.5 3.5 0 010 7z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06A2 2 0 015.27 17.9l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82L4.21 6.8A2 2 0 016.91 4.1l.06.06a1.65 1.65 0 001.82.33h.09A1.65 1.65 0 0010.5 3H13.5a1.65 1.65 0 001.51.33h.09a1.65 1.65 0 001.82-.33l.06-.06A2 2 0 0119.79 6.9l-.06.06a1.65 1.65 0 00-.33 1.82v.09a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            } 
             collapsed={collapsed} 
             isActive={location.pathname.includes('/settings')}
           />
@@ -121,7 +147,13 @@ const Sidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse = () 
           <SidebarLink 
             to="/dashboard/support" 
             label="Help & Support" 
-            icon="❓" 
+            icon={
+              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+                <path d="M9.09 9a3 3 0 115.83 1c0 1.5-1.5 2-1.5 2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M12 17h.01" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            } 
             collapsed={collapsed} 
             isActive={location.pathname.includes('/support')}
           />

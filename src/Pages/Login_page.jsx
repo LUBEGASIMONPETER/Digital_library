@@ -1,27 +1,43 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { apiFetch } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 
 const Login_page = () => {
-  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { setUser } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (!name.trim() || !password) {
-      setError('Please enter both name and password')
+    if (!email.trim() || !password) {
+      setError('Please enter both email and password')
       return
     }
 
     setIsLoading(true)
     try {
-      // TODO: replace with real auth call
-      console.log('Login attempt', { name, password })
-      await new Promise((r) => setTimeout(r, 500))
-      navigate('/')
+        const res = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      })
+
+      const data = await (res.headers.get('content-type')?.includes('application/json') ? res.json() : Promise.resolve({ message: '' }))
+      if (!res.ok) {
+        setError(data.message || 'Login failed')
+        return
+      }
+
+  // Persist user in auth context (AuthProvider will persist to localStorage)
+    if (data.user) setUser(data.user)
+    // Redirect admins to admin dashboard
+    if (data.user?.role === 'admin') navigate('/admin')
+    else navigate('/dashboard')
     } catch (err) {
       setError('Login failed. Please try again.')
     } finally {
@@ -32,9 +48,11 @@ const Login_page = () => {
   const handleGoogle = async () => {
     setIsLoading(true)
     // Placeholder for Google OAuth flow
-    console.log('Simulate Google sign-in')
-    await new Promise((r) => setTimeout(r, 500))
-    navigate('/')
+  console.log('Simulate Google sign-in')
+  await new Promise((r) => setTimeout(r, 500))
+  // In a real flow we'd set the returned user; for now simulate a user
+  setUser({ id: 'google-user', name: 'Google User', schoolName: '' })
+  navigate('/dashboard')
   }
 
   return (
@@ -49,13 +67,13 @@ const Login_page = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Name
+            Email
           </label>
           <input 
-            value={name} 
-            onChange={(e) => setName(e.target.value)} 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)} 
             className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-            placeholder="Enter your name"
+            placeholder="you@example.com"
             disabled={isLoading}
           />
         </div>

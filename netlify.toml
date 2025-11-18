@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[context.production.environment]
+  # Set the backend API URL here (e.g. https://your-backend.onrender.com)
+  VITE_BACKEND_URL = ""
+
+[dev]
+  command = "npm run dev"

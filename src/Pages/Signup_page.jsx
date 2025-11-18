@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
+import { apiFetch } from '../lib/api'
 
 const initialState = {
   fullName: '',
@@ -54,15 +55,40 @@ const Signup_page = () => {
     setSubmitting(true)
 
     try {
-      // Placeholder: submit to API here. For now we just log and redirect.
-      console.log('Submitting', form)
-      // simulate network delay
-      await new Promise((r) => setTimeout(r, 600))
-      // on success navigate to home
-      navigate('/')
+      const payload = {
+        fullName: form.fullName,
+        schoolName: form.schoolName,
+        location: form.location,
+        gender: form.gender,
+        contact: form.contact,
+        email: form.email,
+        password: form.password,
+      }
+
+      const res = await apiFetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      let data = null
+      try {
+        data = await res.json()
+      } catch (parseErr) {
+        // No JSON in response (e.g. empty body). Fall back to text or statusText
+        const text = await res.text().catch(() => '')
+        data = { message: text || res.statusText }
+      }
+
+      if (res.ok) {
+        // Navigate to verification page so user can enter the code sent to their email
+        navigate(`/auth/verify?email=${encodeURIComponent(form.email)}`)
+      } else {
+        setErrors({ submit: data.message || 'Something went wrong. Please try again.' })
+      }
     } catch (err) {
       console.error(err)
-      setErrors({ submit: 'Something went wrong. Please try again.' })
+      setErrors({ submit: 'Network error. Please try again.' })
     } finally {
       setSubmitting(false)
     }

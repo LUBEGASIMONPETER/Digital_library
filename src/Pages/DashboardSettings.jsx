@@ -1,4 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { apiFetch } from '../lib/api'
+import { useToast } from '../Components/Notifications/ToastProvider'
 
 const DashboardSettings = () => {
   const [profile, setProfile] = useState({
@@ -15,6 +17,7 @@ const DashboardSettings = () => {
 
   const [passwords, setPasswords] = useState({ current: '', newPass: '', confirm: '' })
   const [saving, setSaving] = useState(false)
+  const { add: addToast } = useToast()
 
   const handleProfileChange = (key, value) => setProfile(p => ({ ...p, [key]: value }))
   const toggleNotification = (key) => setNotifications(n => ({ ...n, [key]: !n[key] }))
@@ -22,22 +25,97 @@ const DashboardSettings = () => {
   const handleSave = (e) => {
     e.preventDefault()
     setSaving(true)
-    setTimeout(() => {
+    ;(async () => {
+      try {
+        // try to update profile on backend
+        const res = await apiFetch('/api/users/me', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          // backend expects { fullName, email, school }
+          body: JSON.stringify({ fullName: profile.fullName, email: profile.email, school: profile.school })
+        })
+        if (res.ok) {
+          setSaving(false)
+          addToast({ message: 'Profile updated', type: 'success' })
+          // also persist locally
+          localStorage.setItem('dl_profile', JSON.stringify(profile))
+          return
+        }
+        // fallback to local save
+        console.warn('Profile save responded with', res.status)
+      } catch (err) {
+        console.warn('Profile save failed, falling back to localStorage', err)
+      }
+
+      // fallback: save to localStorage so settings persist in demo
+      localStorage.setItem('dl_profile', JSON.stringify(profile))
       setSaving(false)
-      alert('Settings saved (mock)')
-    }, 700)
+      addToast({ message: 'Settings saved (local)', type: 'info' })
+    })()
   }
 
   const handleChangePassword = (e) => {
     e.preventDefault()
-    if (passwords.newPass !== passwords.confirm) return alert('New passwords do not match')
-    setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
-      setPasswords({ current: '', newPass: '', confirm: '' })
-      alert('Password updated (mock)')
-    }, 700)
+  if (passwords.newPass !== passwords.confirm) return addToast({ message: 'New passwords do not match', type: 'error' })
+    ;(async () => {
+      setSaving(true)
+      try {
+        const res = await apiFetch('/api/users/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current: passwords.current, newPassword: passwords.newPass })
+        })
+        if (res.ok) {
+          setPasswords({ current: '', newPass: '', confirm: '' })
+          setSaving(false)
+          addToast({ message: 'Password updated', type: 'success' })
+          return
+        }
+        const body = await res.json().catch(() => ({}))
+        console.warn('Change password response', res.status, body)
+        addToast({ message: body.message || 'Password change failed', type: 'error' })
+      } catch (err) {
+  console.warn('Change password failed, using mock behavior', err)
+  // fallback mock
+  setPasswords({ current: '', newPass: '', confirm: '' })
+  addToast({ message: 'Password updated (local mock)', type: 'info' })
+      } finally {
+        setSaving(false)
+      }
+    })()
   }
+
+  // load profile from backend or localStorage on mount
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+  const res = await apiFetch('/api/users/me')
+        if (res.ok) {
+          const body = await res.json()
+          if (!mounted) return
+          // backend may return { user: {...} } or the user directly
+          const data = body.user || body
+          setProfile(p => ({
+            fullName: data.name || data.fullName || p.fullName,
+            email: data.email || p.email,
+            // backend may return schoolName
+            school: data.schoolName || data.school || p.school
+          }))
+          return
+        }
+      } catch (err) {
+        // ignore and fallback to local
+      }
+
+      // fallback: load from localStorage if available
+      try {
+        const stored = localStorage.getItem('dl_profile')
+        if (stored && mounted) setProfile(JSON.parse(stored))
+      } catch (err) {}
+    })()
+    return () => { mounted = false }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50/30 py-6">
@@ -74,7 +152,7 @@ const DashboardSettings = () => {
           </div>
         </form>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        {/* <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Notifications</h2>
           <div className="space-y-3">
             <label className="flex items-center justify-between p-3 border rounded-xl">
@@ -101,7 +179,7 @@ const DashboardSettings = () => {
               <input type="checkbox" checked={notifications.reminders} onChange={() => toggleNotification('reminders')} />
             </label>
           </div>
-        </div>
+        </div> */}
 
         <form onSubmit={handleChangePassword} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Change password</h2>

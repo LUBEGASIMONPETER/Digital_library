@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: digital-library-backend
+    env: node
+    branch: master
+    root: backend
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    # Optional health check (replace with an actual endpoint if you add one)
+    healthCheckPath: /api/health
+    envVars:
+      - key: MONGODB_URI
+        fromSecret: MONGODB_URI
+      - key: CLOUDINARY_URL
+        fromSecret: CLOUDINARY_URL
+      - key: CLOUDINARY_CLOUD_NAME
+        fromSecret: CLOUDINARY_CLOUD_NAME
+      - key: CLOUDINARY_API_KEY
+        fromSecret: CLOUDINARY_API_KEY
+      - key: CLOUDINARY_API_SECRET
+        fromSecret: CLOUDINARY_API_SECRET
+      - key: ADMIN_EMAIL
+        fromSecret: ADMIN_EMAIL
+      - key: ADMIN_PASSWORD
+        fromSecret: ADMIN_PASSWORD
+      - key: MAILER_HOST
+        fromSecret: MAILER_HOST
+      - key: MAILER_PORT
+        fromSecret: MAILER_PORT
+      - key: MAILER_USER
+        fromSecret: MAILER_USER
+      - key: MAILER_PASS
+        fromSecret: MAILER_PASS

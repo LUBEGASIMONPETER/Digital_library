@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const BookCard = ({ book }) => {
   const [starred, setStarred] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const navigate = useNavigate()
 
   const handleStarClick = (e) => {
     e.preventDefault()
@@ -18,10 +21,53 @@ const BookCard = ({ book }) => {
     console.log('Borrowing book:', book.title)
   }
 
+  const handleReadNow = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (book.fileUrl) {
+      // open in a new tab for reading
+      window.open(book.fileUrl, '_blank', 'noopener')
+    } else {
+      alert('No readable file is available for this book.')
+    }
+  }
+
+  const handleDownload = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!book.fileUrl) {
+      alert('No downloadable file is available for this book.')
+      return
+    }
+
+    try {
+      setDownloading(true)
+      // fetch the file as a blob and trigger a download to avoid CORS issues with download attribute
+      const res = await fetch(book.fileUrl)
+      if (!res.ok) throw new Error('Failed to fetch file')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      // try to infer filename from URL, fallback to title
+      const inferred = (book.fileUrl.split('/').pop() || `${book.title || 'book'}.pdf`).split('?')[0]
+      a.download = inferred
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Download failed', err)
+      alert('Download failed. Please try again or open the file to read instead.')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='250' viewBox='0 0 200 250'%3E%3Crect width='200' height='250' fill='%23f3f4f6'/%3E%3Cpath d='M50 80 L150 80 L150 200 L50 200 Z' fill='%23d1d5db'/%3E%3Cpath d='M60 90 L140 90 L140 190 L60 190 Z' fill='%23e5e7eb'/%3E%3Cpath d='M70 100 L130 100 L130 180 L70 180 Z' fill='%23f9fafb'/%3E%3Ctext x='100' y='230' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EBook Cover%3C/text%3E%3C/svg%3E"
 
   return (
-    <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden hover:scale-[1.02] transform transition-transform">
+    <div onClick={() => navigate(`/dashboard/books/${book.id}`)} className="cursor-pointer group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden hover:scale-[1.02] transform">
       {/* Book Image */}
       <div className="relative overflow-hidden">
         <div className="w-full h-48 bg-gray-200 relative">
@@ -143,27 +189,36 @@ const BookCard = ({ book }) => {
         {/* Action Buttons */}
         <div className="flex items-center justify-between space-x-3">
           <button 
-            onClick={handleBorrowClick}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center space-x-2"
+            onClick={handleReadNow}
+            className={`flex-1 ${book.fileUrl ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'} py-3 px-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center space-x-2`}
+            disabled={!book.fileUrl}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M2 7h16v13H2z" />
               <path d="M6 3v4" />
               <path d="M10 3v4" />
             </svg>
-            <span>Borrow Now</span>
+            <span>Read Now</span>
           </button>
-          
-          <button 
-            onClick={() => {/* Quick preview logic */}}
-            className="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 group"
-            aria-label="Quick preview"
-          >
-            <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </button>
+
+          {/* Download button: use anchor when file exists so browser handles download */}
+          {book.fileUrl ? (
+            <a href={book.fileUrl} download className="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 group" onClick={handleDownload} aria-label="Download book">
+              <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </a>
+          ) : (
+            <button className="w-12 h-12 border-2 border-gray-200 rounded-xl flex items-center justify-center text-gray-300 bg-gray-50 cursor-not-allowed" aria-label="No download available" disabled>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Additional Info */}

@@ -1,95 +1,11 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import BookCard from '../Components/Dashboard/BookCard'
-
-// Sample data with enhanced properties
-const SAMPLE_BOOKS = [
-  { 
-    id: 1, 
-    title: 'Advanced Physics', 
-    author: 'Dr. James Mugisha',
-    readers: 124, 
-    downloads: 42, 
-    description: 'Comprehensive guide to advanced physics concepts covering mechanics, electromagnetism, and thermodynamics.', 
-    image: '/APP_LOGO.png',
-    class: 'Senior 6',
-    subject: 'Physics',
-    category: 'Science',
-    rating: 4.5,
-    pages: 320
-  },
-  { 
-    id: 2, 
-    title: 'Calculus I', 
-    author: 'Prof. Sarah Kato',
-    readers: 98, 
-    downloads: 20, 
-    description: 'An introductory textbook on differential and integral calculus with solved examples.', 
-    image: '/APP_LOGO.png',
-    class: 'Senior 5',
-    subject: 'Mathematics',
-    category: 'Science',
-    rating: 4.2,
-    pages: 280
-  },
-  { 
-    id: 3, 
-    title: 'Modern Chemistry', 
-    author: 'Dr. Robert Ssemakula',
-    readers: 76, 
-    downloads: 15, 
-    description: 'Fundamentals of modern chemistry, focusing on organic and inorganic reactions.', 
-    image: '/APP_LOGO.png',
-    class: 'Senior 6',
-    subject: 'Chemistry',
-    category: 'Science',
-    rating: 4.0,
-    pages: 350
-  },
-  { 
-    id: 4, 
-    title: 'World History', 
-    author: 'Dr. Grace Nalubega',
-    readers: 210, 
-    downloads: 67, 
-    description: 'A survey of world history from ancient civilizations to the modern era.', 
-    image: '/APP_LOGO.png',
-    class: 'Senior 5',
-    subject: 'History',
-    category: 'Arts',
-    rating: 4.7,
-    pages: 410
-  },
-  { 
-    id: 5, 
-    title: 'Biology Fundamentals', 
-    author: 'Dr. James Mugisha',
-    readers: 145, 
-    downloads: 52, 
-    description: 'Comprehensive biology textbook covering cell biology, genetics, and ecology.', 
-    image: '/APP_LOGO.png',
-    class: 'Senior 6',
-    subject: 'Biology',
-    category: 'Science',
-    rating: 4.3,
-    pages: 380
-  },
-  { 
-    id: 6, 
-    title: 'Literature in English', 
-    author: 'Dr. Grace Nalubega',
-    readers: 89, 
-    downloads: 23, 
-    description: 'Analysis of major literary works and development of critical thinking skills.', 
-    image: '/APP_LOGO.png',
-    class: 'Senior 5',
-    subject: 'Literature',
-    category: 'Arts',
-    rating: 4.1,
-    pages: 295
-  }
-]
+import { apiFetch } from '../lib/api'
 
 const DashboardLibrary = () => {
+  const [books, setBooks] = useState([])
+  const [loading, setLoading] = useState(true)
+
   const [filters, setFilters] = useState({
     class: '',
     subject: '',
@@ -100,14 +16,55 @@ const DashboardLibrary = () => {
   const [sortBy, setSortBy] = useState('popular')
   const [showFilters, setShowFilters] = useState(false)
 
-  // Get unique values for filter dropdowns
-  const uniqueClasses = [...new Set(SAMPLE_BOOKS.map(book => book.class))]
-  const uniqueSubjects = [...new Set(SAMPLE_BOOKS.map(book => book.subject))]
-  const uniqueAuthors = [...new Set(SAMPLE_BOOKS.map(book => book.author))]
+  // Fetch books from backend and map to UI shape used by BookCard
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      setLoading(true)
+      try {
+  const res = await apiFetch('/api/admin/books')
+        if (!res.ok) {
+          console.error('Failed to fetch books for library', res.status)
+          if (mounted) setBooks([])
+          return
+        }
+        const body = await res.json()
+        const serverBooks = Array.isArray(body.books) ? body.books : body
+        const mapped = serverBooks.map(b => ({
+          id: b._id || b.id,
+          title: b.title,
+          author: b.author || 'Unknown',
+          description: b.description || '',
+          image: b.coverUrl || b.cover || '/APP_LOGO.png',
+          fileUrl: b.fileUrl || b.file || '',
+          category: b.category || '',
+          // readers/downloads absent in backend - approximate with borrowCount
+          readers: b.borrowCount || 0,
+          downloads: b.downloadCount || 0,
+          rating: b.rating || null,
+          pages: b.pages || null,
+          subject: b.category || '',
+          class: b.level || '',
+        }))
+        if (mounted) setBooks(mapped)
+      } catch (err) {
+        console.error('Error fetching library books', err)
+        if (mounted) setBooks([])
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
+
+  // Get unique values for filter dropdowns (from real books)
+  const uniqueClasses = [...new Set(books.map(book => book.class).filter(Boolean))]
+  const uniqueSubjects = [...new Set(books.map(book => book.subject).filter(Boolean))]
+  const uniqueAuthors = [...new Set(books.map(book => book.author).filter(Boolean))]
 
   // Filter and sort books
   const filteredBooks = useMemo(() => {
-    let filtered = SAMPLE_BOOKS.filter(book => {
+    let filtered = books.filter(book => {
       const matchesClass = !filters.class || book.class === filters.class
       const matchesSubject = !filters.subject || book.subject === filters.subject
       const matchesAuthor = !filters.author || book.author === filters.author
@@ -138,7 +95,7 @@ const DashboardLibrary = () => {
     }
 
     return filtered
-  }, [filters, sortBy])
+  }, [filters, sortBy, books])
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
@@ -158,6 +115,17 @@ const DashboardLibrary = () => {
   }
 
   const hasActiveFilters = filters.class || filters.subject || filters.author || filters.search
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-48">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading library...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
