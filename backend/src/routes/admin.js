@@ -74,6 +74,31 @@ router.post('/test-email', async (req, res) => {
   }
 });
 
+// GET /api/admin/diag
+// Diagnostic: return config and request info to help debug production issues
+router.get('/diag', async (req, res) => {
+  try {
+    const origin = String(req.get('origin') || req.get('referer') || '')
+    const frontend = String(process.env.FRONTEND_URL || '')
+    const mailerConfigured = Boolean((process.env.SMTP_HOST || process.env.MAILER_HOST) && (process.env.SMTP_USER || process.env.MAILER_USER) && (process.env.SMTP_PASS || process.env.MAILER_PASS))
+    const allowed = (() => {
+      try {
+        // use allowedFromFrontend logic but don't enforce NODE_ENV here
+        const normalizedOrigin = origin.replace(/\/$/, '')
+        const normalizedAllowed = frontend.replace(/\/$/, '')
+        if (!frontend) return 'FRONTEND_URL not set'
+        return normalizedOrigin.startsWith(normalizedAllowed) ? 'allowed' : 'not-allowed'
+      } catch (e) {
+        return 'error'
+      }
+    })()
+    return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured })
+  } catch (err) {
+    console.error('Diag error', err)
+    return res.status(500).json({ message: 'Diag failed', error: err.message })
+  }
+})
+
 // GET /api/admin/unverified
 // Development helper: list unverified users with their code and expiry
 router.get('/unverified', async (req, res) => {

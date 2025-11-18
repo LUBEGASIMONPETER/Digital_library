@@ -33,7 +33,15 @@ const UserManagement = () => {
       try {
   const res = await apiFetch('/api/admin/users')
         if (!res.ok) {
-          throw new Error('Failed to fetch users')
+          // attempt to read error body
+          let msg = `status ${res.status}`
+          try {
+            const body = await res.json()
+            if (body && body.message) msg = `${msg} - ${body.message}`
+          } catch (e) {
+            // ignore
+          }
+          throw new Error('Failed to fetch users: ' + msg)
         }
         const data = await res.json()
         const usersFromApi = (data.users || []).map(u => ({
