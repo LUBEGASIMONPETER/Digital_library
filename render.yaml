@@ -10,7 +10,7 @@ services:
     # Optional health check (replace with an actual endpoint if you add one)
     healthCheckPath: /api/health
     envVars:
-      - key: MONGODB_URI
+      - key: MONGO_URI
         fromSecret: MONGODB_URI
       - key: CLOUDINARY_URL
         fromSecret: CLOUDINARY_URL

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 // Resilient MongoDB connection with retry/backoff for development.
 // Returns a Promise that resolves only when Mongoose is connected.
 const connectDB = async () => {
-  const uri = process.env.MONGO_URI;
+  const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
   if (!uri) {
     console.error('MONGO_URI not set in environment');
     return;

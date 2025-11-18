@@ -39,9 +39,9 @@ function uploadBufferToCloudinary(buffer, options = {}) {
 }
 
 // simple environment check to help debug missing Cloudinary config
-const CLOUDINARY_CONFIGURED = Boolean(
-  process.env.CLOUDINARY_URL || (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.CLOUDINARY_CLOUD_NAME)
-)
+// Prefer the runtime-detected flag exported from the cloudinary helper so we don't
+// treat an incorrectly formatted CLOUDINARY_URL as "configured" and crash.
+const CLOUDINARY_CONFIGURED = Boolean(cloudinary && cloudinary._configured)
 
 // POST /api/admin/test-email
 // body: { to: string, link?: string }
