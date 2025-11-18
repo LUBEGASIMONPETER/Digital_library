@@ -340,6 +340,24 @@ router.put('/users/:id/restore', async (req, res) => {
 // POST /api/admin/books
 // Accepts multipart/form-data: fields for title, author, isbn, category, description, totalCopies, availableCopies, publisher, publishedYear
 // files: cover (image), file (pdf)
+// DEBUG: POST /api/admin/books/debug
+// Accepts multipart and returns diagnostic info about received files and fields without saving.
+router.post('/books/debug', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }]), async (req, res) => {
+  try {
+    const fields = req.body || {}
+    const files = {}
+    if (req.files) {
+      Object.keys(req.files).forEach(k => {
+        files[k] = req.files[k].map(f => ({ originalname: f.originalname, mimetype: f.mimetype, size: f.size }))
+      })
+    }
+    return res.json({ message: 'Debug upload received', fields, files, cloudinaryConfigured: Boolean(cloudinary && cloudinary._configured) })
+  } catch (err) {
+    console.error('Upload debug failed', err)
+    return res.status(500).json({ message: 'Upload debug failed', error: err.message })
+  }
+})
+
 router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'file', maxCount: 1 }]), async (req, res) => {
   if (process.env.NODE_ENV === 'production') {
     // In production you should protect this route with authentication/authorization
