@@ -27,7 +27,7 @@ export default function VerifyEmail() {
     const verify = async () => {
       setStatus('loading')
       try {
-        const res = await fetch(`/api/auth/verify?token=${encodeURIComponent(token)}`, {
+        const res = await apiFetch(`/api/auth/verify?token=${encodeURIComponent(token)}`, {
           method: 'GET'
         })
         const data = await res.json()

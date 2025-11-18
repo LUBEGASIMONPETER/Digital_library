@@ -49,7 +49,7 @@ const BookCatalog = () => {
   const fetchBooks = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/books')
+      const res = await apiFetch('/api/admin/books')
       if (!res.ok) {
         console.error('Failed to fetch books', res.status)
         setBooks([])
@@ -242,7 +242,7 @@ const BookCatalog = () => {
       console.log('Deleting book, bookToDelete=', bookToDelete)
       try {
         setLoading(true)
-        const res = await fetch(`/api/admin/books/${bookToDelete.id}`, { method: 'DELETE' })
+  const res = await apiFetch(`/api/admin/books/${bookToDelete.id}`, { method: 'DELETE' })
         console.log('Delete response status=', res.status)
         setLoading(false)
         if (!res.ok) {
@@ -355,7 +355,7 @@ const BookCatalog = () => {
         if (bookToEdit.bookFile) form.append('file', bookToEdit.bookFile)
 
         setLoading(true)
-        const res = await fetch(`/api/admin/books/${bookToEdit.id}`, {
+        const res = await apiFetch(`/api/admin/books/${bookToEdit.id}`, {
           method: 'PUT',
           body: form
         })

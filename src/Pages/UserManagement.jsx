@@ -145,7 +145,7 @@ const UserManagement = () => {
     setActionProcessing(true)
     try {
       if (actionType === 'ban') {
-        const res = await fetch(`/api/admin/users/${actionUser.id}/ban`, {
+        const res = await apiFetch(`/api/admin/users/${actionUser.id}/ban`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ reason: actionReason, adminName: authUser?.email || authUser?.name || 'Administrator' })
@@ -158,7 +158,7 @@ const UserManagement = () => {
         if (!actionUntil) return alert('Please pick a suspension end date')
         const untilIso = new Date(actionUntil)
         untilIso.setHours(23,59,59,999)
-        const res = await fetch(`/api/admin/users/${actionUser.id}/suspend`, {
+        const res = await apiFetch(`/api/admin/users/${actionUser.id}/suspend`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ until: untilIso.toISOString(), reason: actionReason, adminName: authUser?.email || authUser?.name || 'Administrator' })
@@ -168,7 +168,7 @@ const UserManagement = () => {
         setUsers(prev => prev.map(u => u.id === actionUser.id ? { ...u, status: 'suspended', suspendedUntil: body.user.suspendedUntil } : u))
         setFilteredUsers(prev => prev.map(u => u.id === actionUser.id ? { ...u, status: 'suspended', suspendedUntil: body.user.suspendedUntil } : u))
       } else if (actionType === 'delete') {
-        const res = await fetch(`/api/admin/users/${actionUser.id}`, {
+        const res = await apiFetch(`/api/admin/users/${actionUser.id}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ reason: actionReason, adminName: authUser?.email || authUser?.name || 'Administrator' })
@@ -180,7 +180,7 @@ const UserManagement = () => {
         setSelectedUsers(prev => prev.filter(id => id !== actionUser.id))
       } else if (actionType === 'unsuspend' || actionType === 'unban' || actionType === 'reactivate') {
         // unsuspend, unban and reactivate all set the account back to active
-        const res = await fetch(`/api/admin/users/${actionUser.id}/unsuspend`, {
+        const res = await apiFetch(`/api/admin/users/${actionUser.id}/unsuspend`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ reason: actionReason, adminName: authUser?.email || authUser?.name || 'Administrator' })
@@ -217,7 +217,7 @@ const UserManagement = () => {
     // fire-and-forget async update
     ;(async () => {
       try {
-        const res = await fetch(`/api/admin/users/${userId}/role`, {
+        const res = await apiFetch(`/api/admin/users/${userId}/role`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: newRole })

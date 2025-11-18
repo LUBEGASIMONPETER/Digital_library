@@ -41,7 +41,7 @@ const DeletedUsers = () => {
     if (!selectedUser) return
     setProcessing(true)
     try {
-      const res = await fetch(`/api/admin/users/${selectedUser.id}/restore`, {
+      const res = await apiFetch(`/api/admin/users/${selectedUser.id}/restore`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason, adminName: authUser?.email || authUser?.name || 'Administrator' })

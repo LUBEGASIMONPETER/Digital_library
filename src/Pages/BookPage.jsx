@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { apiFetch } from '../lib/api'
 import { useParams, useNavigate } from 'react-router-dom'
 
 const BookPage = () => {
@@ -12,7 +13,7 @@ const BookPage = () => {
     ;(async () => {
       setLoading(true)
       try {
-        const res = await fetch(`/api/admin/books/${id}`)
+  const res = await apiFetch(`/api/admin/books/${id}`)
         if (!res.ok) {
           console.error('Failed to fetch book', res.status)
           if (mounted) setBook(null)
