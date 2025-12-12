@@ -1,4 +1,4 @@
-const nodemailer = require("nodemailer");
+const nodemailer = require('nodemailer');
 
 let transporter = null;
 let mailerReady = false;
@@ -12,7 +12,8 @@ const mailPass = process.env.SMTP_PASS || process.env.MAILER_PASS || '';
 const mailFrom = process.env.SMTP_FROM || process.env.MAILER_FROM || process.env.SMTP_USER || process.env.MAILER_USER || '';
 
 if (mailHost && mailUser && mailPass) {
-    transporter = nodemailer.createTransport({
+    // Build transport options with sensible defaults and tunable env vars.
+    const transportOptions = {
         host: mailHost,
         port: mailPort,
         secure: mailSecure,
@@ -20,21 +21,36 @@ if (mailHost && mailUser && mailPass) {
             user: mailUser,
             pass: mailPass,
         },
-    });
-        // Verify transporter connectivity asynchronously and record status
-        transporter.verify()
-            .then(() => {
-                mailerReady = true
-                console.log('Mailer transporter verified')
-            })
-                    .catch(err => {
-                                    mailerReady = false
-                                    console.error('Mailer transporter verification failed:', err && err.message ? err.message : err)
-                                    try {
-                                        const debug = require('./debugStore')
-                                        debug.setLastError(err)
-                                    } catch (e) {}
-                            })
+        // Force STARTTLS on ports like 587 when secure is false (common setup)
+        requireTLS: mailPort === 587 && !mailSecure,
+        // Timeouts (ms) - can be tuned via env vars in production
+        connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT) || 10000,
+        greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT) || 10000,
+        socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT) || 10000,
+        // TLS verification toggle (useful for some providers / staging)
+        tls: {
+            rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED === 'false' ? false : true,
+        },
+        // Optional pooling (disabled by default)
+        pool: process.env.SMTP_POOL === 'true' || false,
+    };
+
+    transporter = nodemailer.createTransport(transportOptions);
+
+    // Verify transporter connectivity asynchronously and record status
+    transporter.verify()
+        .then(() => {
+            mailerReady = true
+            console.log('Mailer transporter verified')
+        })
+        .catch(err => {
+            mailerReady = false
+            console.error('Mailer transporter verification failed:', err && err.message ? err.message : err)
+            try {
+                const debug = require('./debugStore')
+                debug.setLastError(err)
+            } catch (e) {}
+        })
 } else {
     // transporter remains null - we'll fallback to logging links for dev
 }
@@ -210,15 +226,16 @@ async function sendVerificationEmail(to, link) {
   `;
   }
 
-  if (!transporter) {
-    // No SMTP configured – log to console for development
-    console.log("====== VERIFICATION EMAIL (no SMTP configured) ======");
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(html);
-    console.log("=====================================================");
-        return { logged: true }
-  }
+    // If transporter isn't available or verification previously failed, fall back to logging.
+    if (!transporter || !mailerReady) {
+        console.log("====== VERIFICATION EMAIL (SMTP not ready) ======");
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        console.log(html);
+        console.log("=====================================================");
+        // Indicate we logged instead of sending
+        return { logged: true, mailerReady: !!mailerReady }
+    }
     try {
         const info = await transporter.sendMail({
             from: process.env.SMTP_FROM || process.env.SMTP_USER,
@@ -433,13 +450,13 @@ async function sendAccountActionEmail(to, opts = {}) {
 </html>
 `;
 
-    if (!transporter) {
-        console.log('====== ACCOUNT ACTION EMAIL (no SMTP configured) ======');
+    if (!transporter || !mailerReady) {
+        console.log('====== ACCOUNT ACTION EMAIL (SMTP not ready) ======');
         console.log(`To: ${to}`);
         console.log(`Subject: ${subject}`);
         console.log('HTML content would be sent with account action details');
         console.log('=====================================================');
-        return { logged: true }
+        return { logged: true, mailerReady: !!mailerReady }
     }
     try {
         const info = await transporter.sendMail({
