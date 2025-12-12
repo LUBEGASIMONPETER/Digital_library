@@ -11,6 +11,21 @@ const mailUser = process.env.SMTP_USER || process.env.MAILER_USER || '';
 const mailPass = process.env.SMTP_PASS || process.env.MAILER_PASS || '';
 const mailFrom = process.env.SMTP_FROM || process.env.MAILER_FROM || process.env.SMTP_USER || process.env.MAILER_USER || '';
 
+// Optional SendGrid API fallback (recommended on platforms that block SMTP)
+const sendgridKey = process.env.SENDGRID_API_KEY || process.env.SENDGRID_KEY || '';
+let useSendGrid = false;
+let sendgrid = null;
+if (sendgridKey) {
+    try {
+        sendgrid = require('@sendgrid/mail');
+        sendgrid.setApiKey(sendgridKey);
+        useSendGrid = true;
+        console.log('SendGrid API configured for outgoing email');
+    } catch (e) {
+        console.error('SendGrid configured but @sendgrid/mail is not installed or failed to load:', e && e.message ? e.message : e);
+    }
+}
+
 if (mailHost && mailUser && mailPass) {
     // Build transport options with sensible defaults and tunable env vars.
     const transportOptions = {
@@ -53,6 +68,36 @@ if (mailHost && mailUser && mailPass) {
         })
 } else {
     // transporter remains null - we'll fallback to logging links for dev
+}
+
+// Helper to send via configured provider (SendGrid preferred if available)
+async function sendWithProvider({ from, to, subject, html, text }) {
+    if (useSendGrid && sendgrid) {
+        // sendgrid.send returns an array of responses; normalize
+        const msg = { to, from, subject };
+        if (html) msg.html = html;
+        if (text) msg.text = text;
+        try {
+            const res = await sendgrid.send(msg);
+            return res;
+        } catch (err) {
+            console.error('SendGrid send failed:', err && err.message ? err.message : err);
+            throw err;
+        }
+    }
+
+    if (!transporter) {
+        const err = new Error('No SMTP transporter configured');
+        console.error('No transporter available to send email');
+        throw err;
+    }
+    try {
+        const info = await transporter.sendMail({ from, to, subject, html, text });
+        return info;
+    } catch (err) {
+        console.error('SMTP send failed:', err && err.message ? err.message : err);
+        throw err;
+    }
 }
 
 async function sendVerificationEmail(to, link) {
@@ -226,8 +271,8 @@ async function sendVerificationEmail(to, link) {
   `;
   }
 
-    // If transporter isn't available or verification previously failed, fall back to logging.
-    if (!transporter || !mailerReady) {
+    // If SMTP not ready but SendGrid is configured, use SendGrid. Otherwise fall back to logging.
+    if ((!transporter || !mailerReady) && !useSendGrid) {
         console.log("====== VERIFICATION EMAIL (SMTP not ready) ======");
         console.log(`To: ${to}`);
         console.log(`Subject: ${subject}`);
@@ -236,14 +281,16 @@ async function sendVerificationEmail(to, link) {
         // Indicate we logged instead of sending
         return { logged: true, mailerReady: !!mailerReady }
     }
+
     try {
-        const info = await transporter.sendMail({
-            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        const info = await sendWithProvider({
+            from: process.env.SMTP_FROM || process.env.SMTP_USER || mailFrom,
             to,
             subject,
             html,
-        })
-        return info
+            text: undefined,
+        });
+        return info;
     } catch (err) {
         console.error('Failed to send verification email', err && err.message ? err.message : err)
         throw err
@@ -450,7 +497,7 @@ async function sendAccountActionEmail(to, opts = {}) {
 </html>
 `;
 
-    if (!transporter || !mailerReady) {
+    if ((!transporter || !mailerReady) && !useSendGrid) {
         console.log('====== ACCOUNT ACTION EMAIL (SMTP not ready) ======');
         console.log(`To: ${to}`);
         console.log(`Subject: ${subject}`);
@@ -459,8 +506,8 @@ async function sendAccountActionEmail(to, opts = {}) {
         return { logged: true, mailerReady: !!mailerReady }
     }
     try {
-        const info = await transporter.sendMail({
-            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        const info = await sendWithProvider({
+            from: process.env.SMTP_FROM || process.env.SMTP_USER || mailFrom,
             to,
             subject,
             html
