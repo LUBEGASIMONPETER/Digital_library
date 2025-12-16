@@ -586,8 +586,9 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
         try {
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${coverFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
           const localPath = await writeBufferToUploads(coverFile.buffer, 'covers', filename)
-          const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`
-          book.coverUrl = backendOrigin + localPath
+          // Build a public absolute URL based on the incoming request/proxy headers
+          const backendOriginLocal = getBackendOrigin(req)
+          book.coverUrl = backendOriginLocal + localPath
         } catch (fsErr) {
           console.error('Failed to write cover to local uploads', fsErr)
           return res.status(500).json({ message: 'Failed to save cover file on server', error: fsErr.message })
@@ -605,8 +606,8 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
           try {
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${coverFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
             const localPath = await writeBufferToUploads(coverFile.buffer, 'covers', filename)
-            const backendOrigin = process.env.BACKEND_URL || (req.protocol + '://' + req.get('host'))
-            book.coverUrl = backendOrigin + localPath
+            const backendOriginLocal = getBackendOrigin(req)
+            book.coverUrl = backendOriginLocal + localPath
             console.warn('Fell back to local cover storage due to Cloudinary error')
           } catch (fsErr) {
             console.error('Fallback local write for cover also failed', fsErr)
@@ -625,8 +626,8 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
         try {
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${bookFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
           const localPath = await writeBufferToUploads(bookFile.buffer, 'books', filename)
-          const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`
-          book.fileUrl = backendOrigin + localPath
+          const backendOriginLocal = getBackendOrigin(req)
+          book.fileUrl = backendOriginLocal + localPath
         } catch (fsErr) {
           console.error('Failed to write book file to local uploads', fsErr)
           return res.status(500).json({ message: 'Failed to save book file on server', error: fsErr.message })
@@ -642,8 +643,8 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
           try {
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${bookFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
             const localPath = await writeBufferToUploads(bookFile.buffer, 'books', filename)
-            const backendOrigin = process.env.BACKEND_URL || (req.protocol + '://' + req.get('host'))
-            book.fileUrl = backendOrigin + localPath
+            const backendOriginLocal = getBackendOrigin(req)
+            book.fileUrl = backendOriginLocal + localPath
             console.warn('Fell back to local book file storage due to Cloudinary error')
           } catch (fsErr) {
             console.error('Fallback local write for book file also failed', fsErr)
