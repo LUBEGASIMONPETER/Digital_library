@@ -8,6 +8,17 @@ const cloudinary = require('../config/cloudinary')
 const fs = require('fs')
 const path = require('path')
 
+// Helper to determine the public backend origin. Prefer explicit BACKEND_URL, then
+// honor common proxy headers (x-forwarded-proto/host) so the generated URLs are
+// correct when running behind a platform proxy (Render, Heroku, etc.).
+function getBackendOrigin(req) {
+  if (process.env.BACKEND_URL) return process.env.BACKEND_URL.replace(/\/$/, '')
+  const proto = (req.get('x-forwarded-proto') || req.protocol || 'http').split(',')[0].trim()
+  const host = (req.get('x-forwarded-host') || req.get('host') || '').split(',')[0].trim()
+  if (!host) return `${proto}://localhost:${process.env.PORT || 5000}`
+  return `${proto}://${host}`
+}
+
 // helper to write buffer to local uploads folder when Cloudinary is not available
 async function writeBufferToUploads(buffer, folder, filename) {
   const uploadsRoot = path.join(__dirname, '..', '..', 'uploads')
@@ -402,8 +413,8 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${coverFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
           const localPath = await writeBufferToUploads(coverFile.buffer, 'covers', filename)
           // prefer absolute backend origin when available; otherwise build from the incoming request host
-          const backendOrigin = process.env.BACKEND_URL || (req.protocol + '://' + req.get('host'))
-          coverUrl = backendOrigin + localPath
+          const backendOriginLocal = getBackendOrigin(req)
+          coverUrl = backendOriginLocal + localPath
         } catch (fsErr) {
           console.error('Failed to write cover to local uploads', fsErr)
           return res.status(500).json({ message: 'Failed to save cover file on server', error: fsErr.message })
@@ -433,8 +444,8 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
         try {
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${bookFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
           const localPath = await writeBufferToUploads(bookFile.buffer, 'books', filename)
-          const backendOrigin = process.env.BACKEND_URL || (req.protocol + '://' + req.get('host'))
-          fileUrl = backendOrigin + localPath
+          const backendOriginLocal = getBackendOrigin(req)
+          fileUrl = backendOriginLocal + localPath
         } catch (fsErr) {
           console.error('Failed to write book file to local uploads', fsErr)
           return res.status(500).json({ message: 'Failed to save book file on server', error: fsErr.message })
@@ -454,8 +465,8 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
           try {
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${bookFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
             const localPath = await writeBufferToUploads(bookFile.buffer, 'books', filename)
-            const backendOrigin = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`
-            fileUrl = backendOrigin + localPath
+            const backendOriginLocal = getBackendOrigin(req)
+            fileUrl = backendOriginLocal + localPath
             console.warn('Fell back to local book file storage due to Cloudinary error')
           } catch (fsErr) {
             console.error('Fallback local write for book file also failed', fsErr)

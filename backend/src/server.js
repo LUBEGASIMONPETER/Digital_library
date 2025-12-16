@@ -6,6 +6,9 @@ const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 
 const app = express();
+  // When deployed behind a proxy (Render, Heroku), trust the proxy so that
+  // req.protocol and x-forwarded-* headers reflect the original request.
+  app.set('trust proxy', true);
 
 async function start() {
   // connect to DB in background so the server can start even if Mongo is temporarily unreachable.
