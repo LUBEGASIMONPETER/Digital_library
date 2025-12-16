@@ -429,7 +429,9 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
           coverUrl = result && result.secure_url ? result.secure_url : coverUrl
         } catch (uplErr) {
           console.error('Cloudinary cover upload failed', uplErr)
-          return res.status(502).json({ message: 'Failed to upload cover image', error: uplErr.message || String(uplErr) })
+          const resp = { message: 'Failed to upload cover image', error: uplErr.message || String(uplErr) }
+          if (process.env.DEBUG_UPLOADS === 'true') resp.stack = uplErr.stack || String(uplErr)
+          return res.status(502).json(resp)
         }
       }
       // coverUrl was set above (either from local fallback or from Cloudinary when configured)
@@ -459,9 +461,12 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
         try {
           const result = await uploadBufferToCloudinary(bookFile.buffer, { resource_type: 'raw', folder: 'dlibrary/books' })
           fileUrl = result && result.secure_url ? result.secure_url : fileUrl
-        } catch (uplErr) {
+          } catch (uplErr) {
           console.error('Cloudinary book file upload failed', uplErr)
           // fallback to local storage if cloudinary fails
+          // capture error info for debug responses when enabled
+          const cloudErrInfo = { message: uplErr.message || String(uplErr) }
+          if (process.env.DEBUG_UPLOADS === 'true') cloudErrInfo.stack = uplErr.stack || String(uplErr)
           try {
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${bookFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
             const localPath = await writeBufferToUploads(bookFile.buffer, 'books', filename)
@@ -470,7 +475,9 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
             console.warn('Fell back to local book file storage due to Cloudinary error')
           } catch (fsErr) {
             console.error('Fallback local write for book file also failed', fsErr)
-            return res.status(502).json({ message: 'Failed to upload book file', error: uplErr.message || String(uplErr) })
+            const resp = { message: 'Failed to upload book file', error: cloudErrInfo.message }
+            if (process.env.DEBUG_UPLOADS === 'true') resp.cloudinary = cloudErrInfo, resp.stack = (fsErr && fsErr.stack) ? fsErr.stack : String(fsErr)
+            return res.status(502).json(resp)
           }
         }
       }
@@ -603,7 +610,9 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
             console.warn('Fell back to local cover storage due to Cloudinary error')
           } catch (fsErr) {
             console.error('Fallback local write for cover also failed', fsErr)
-            return res.status(502).json({ message: 'Failed to upload cover image', error: String(uplErr) })
+            const resp = { message: 'Failed to upload cover image', error: String(uplErr) }
+            if (process.env.DEBUG_UPLOADS === 'true') resp.stack = uplErr && uplErr.stack ? uplErr.stack : String(uplErr)
+            return res.status(502).json(resp)
           }
         }
       }
