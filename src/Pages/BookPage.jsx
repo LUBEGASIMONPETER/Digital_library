@@ -17,7 +17,8 @@ const BookPage = () => {
     ;(async () => {
       setLoading(true)
       try {
-  const res = await apiFetch(`/api/admin/books/${id}`)
+        // Use protected books API endpoint (requires authentication)
+        const res = await apiFetch(`/api/books/${id}`)
         if (!res.ok) {
           console.error('Failed to fetch book', res.status)
           if (mounted) setBook(null)

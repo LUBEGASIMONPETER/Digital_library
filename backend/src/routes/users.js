@@ -11,6 +11,7 @@ const fs = require('fs')
 const path = require('path')
 const multer = require('multer')
 const cloudinary = require('../config/cloudinary')
+const { requireAuth } = require('../middleware/auth')
 
 // Seed achievements on startup
 seedAchievements();
@@ -126,10 +127,9 @@ router.get('/profile', async (req, res) => {
 })
 
 // GET /api/users/me
-router.get('/me', async (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
   try {
-    const user = await findCurrentUser(req)
-    if (!user) return res.status(404).json({ message: 'No user found' })
+    const user = req.user
     const out = {
       id: user._id,
       name: user.name,
@@ -151,9 +151,9 @@ router.get('/me', async (req, res) => {
 })
 
 // PUT /api/users/me
-router.put('/me', async (req, res) => {
+router.put('/me', requireAuth, async (req, res) => {
   try {
-    const mongooseConnected = mongoose.connection && mongoose.connection.readyState === 1
+    const user = req.user
     const { 
       fullName, name, email, school, schoolName, bio, level, 
       contact, location, gender, notificationPreferences 
@@ -161,59 +161,37 @@ router.put('/me', async (req, res) => {
     const resolvedName = fullName !== undefined ? fullName : name
     const resolvedSchool = school !== undefined ? school : schoolName
 
-    if (mongooseConnected) {
-      const user = await findCurrentUser(req)
-      if (!user) return res.status(404).json({ message: 'No user found' })
-
-      if (resolvedName !== undefined) user.name = resolvedName
-      if (resolvedSchool !== undefined) user.schoolName = resolvedSchool
-      if (bio !== undefined) user.bio = bio
-      if (level !== undefined) user.level = level
-      if (contact !== undefined) user.contact = contact
-      if (location !== undefined) user.location = location
-      if (gender !== undefined) user.gender = gender
-      if (notificationPreferences !== undefined) {
-        user.notificationPreferences = { ...user.notificationPreferences, ...notificationPreferences }
-      }
-
-      if (email !== undefined && email !== user.email) {
-        const exists = await User.findOne({ email: email.toLowerCase().trim(), _id: { $ne: user._id } })
-        if (exists) return res.status(400).json({ message: 'Email already in use' })
-        user.email = email.toLowerCase().trim()
-      }
-
-      await user.save()
-      return res.json({ 
-        message: 'Profile updated', 
-        user: { 
-          id: user._id, 
-          name: user.name, 
-          email: user.email, 
-          schoolName: user.schoolName,
-          bio: user.bio,
-          level: user.level,
-          avatarUrl: user.avatarUrl,
-          notificationPreferences: user.notificationPreferences
-        } 
-      })
+    if (resolvedName !== undefined) user.name = resolvedName
+    if (resolvedSchool !== undefined) user.schoolName = resolvedSchool
+    if (bio !== undefined) user.bio = bio
+    if (level !== undefined) user.level = level
+    if (contact !== undefined) user.contact = contact
+    if (location !== undefined) user.location = location
+    if (gender !== undefined) user.gender = gender
+    if (notificationPreferences !== undefined) {
+      user.notificationPreferences = { ...user.notificationPreferences, ...notificationPreferences }
     }
 
-    const current = fs.existsSync(DEV_PROFILE_PATH) ? JSON.parse(fs.readFileSync(DEV_PROFILE_PATH, 'utf8')) : {}
-    const updated = {
-      ...current,
-      name: resolvedName !== undefined ? resolvedName : current.name || 'Dev User',
-      fullName: resolvedName !== undefined ? resolvedName : current.fullName || 'Dev User',
-      email: email !== undefined ? email : current.email || '',
-      school: resolvedSchool !== undefined ? resolvedSchool : current.school || '',
-      schoolName: resolvedSchool !== undefined ? resolvedSchool : current.schoolName || '',
-      bio: bio !== undefined ? bio : current.bio || '',
-      level: level !== undefined ? level : current.level || 'Student',
-      contact: contact !== undefined ? contact : current.contact || '',
-      location: location !== undefined ? location : current.location || '',
-      gender: gender !== undefined ? gender : current.gender || ''
+    if (email !== undefined && email !== user.email) {
+      const exists = await User.findOne({ email: email.toLowerCase().trim(), _id: { $ne: user._id } })
+      if (exists) return res.status(400).json({ message: 'Email already in use' })
+      user.email = email.toLowerCase().trim()
     }
-    fs.writeFileSync(DEV_PROFILE_PATH, JSON.stringify(updated, null, 2), 'utf8')
-    return res.json({ message: 'Profile updated (dev fallback)', user: { id: 'dev-local', ...updated } })
+
+    await user.save()
+    return res.json({ 
+      message: 'Profile updated', 
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        schoolName: user.schoolName,
+        bio: user.bio,
+        level: user.level,
+        avatarUrl: user.avatarUrl,
+        notificationPreferences: user.notificationPreferences
+      } 
+    })
   } catch (err) {
     console.error('PUT /api/users/me error', err)
     return res.status(500).json({ message: 'Server error' })
@@ -221,12 +199,11 @@ router.put('/me', async (req, res) => {
 })
 
 // POST /api/users/avatar
-router.post('/avatar', upload.single('avatar'), async (req, res) => {
+router.post('/avatar', requireAuth, upload.single('avatar'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
     
-    const user = await findCurrentUser(req)
-    if (!user) return res.status(404).json({ message: 'User not found' })
+    const user = req.user
 
     let avatarUrl = ''
     let avatarPublicId = ''
@@ -259,42 +236,25 @@ router.post('/avatar', upload.single('avatar'), async (req, res) => {
 })
 
 // POST /api/users/change-password
-router.post('/change-password', async (req, res) => {
+router.post('/change-password', requireAuth, async (req, res) => {
   try {
     const { current, newPassword } = req.body || {}
     if (!current || !newPassword) return res.status(400).json({ message: 'Missing fields' })
 
-    const mongooseConnected = mongoose.connection && mongoose.connection.readyState === 1
+    const user = req.user
 
-    if (mongooseConnected) {
-      const user = await findCurrentUser(req)
-      if (!user) return res.status(404).json({ message: 'No user found' })
-
-      const match = await bcrypt.compare(current, user.password)
-      if (!match) return res.status(400).json({ message: 'Current password incorrect' })
-
-      const salt = await bcrypt.genSalt(10)
-      user.password = await bcrypt.hash(newPassword, salt)
-      await user.save()
-      return res.json({ message: 'Password updated' })
+    // Google OAuth users might not have a password
+    if (user.authProvider === 'google' && !user.password) {
+      return res.status(400).json({ message: 'Google accounts cannot change password here. Use Google account settings.' })
     }
 
-    // Dev fallback: persist password hash in DEV_PROFILE_PATH so change-password works when DB is down
-    const existing = fs.existsSync(DEV_PROFILE_PATH) ? JSON.parse(fs.readFileSync(DEV_PROFILE_PATH, 'utf8')) : {}
-    const storedHash = existing.passwordHash
-
-    if (storedHash) {
-      const match = await bcrypt.compare(current, storedHash)
-      if (!match) return res.status(400).json({ message: 'Current password incorrect' })
-    } else {
-      // no stored password => accept any current (first set)
-    }
+    const match = await bcrypt.compare(current, user.password)
+    if (!match) return res.status(400).json({ message: 'Current password incorrect' })
 
     const salt = await bcrypt.genSalt(10)
-    const newHash = await bcrypt.hash(newPassword, salt)
-    const updated = { ...existing, passwordHash: newHash }
-    fs.writeFileSync(DEV_PROFILE_PATH, JSON.stringify(updated, null, 2), 'utf8')
-    return res.json({ message: 'Password updated (dev fallback)' })
+    user.password = await bcrypt.hash(newPassword, salt)
+    await user.save()
+    return res.json({ message: 'Password updated' })
   } catch (err) {
     console.error('POST /api/users/change-password error', err)
     return res.status(500).json({ message: 'Server error' })
@@ -302,10 +262,9 @@ router.post('/change-password', async (req, res) => {
 })
 
 // GET /api/users/dashboard-stats
-router.get('/dashboard-stats', async (req, res) => {
+router.get('/dashboard-stats', requireAuth, async (req, res) => {
   try {
-    const user = await findCurrentUser(req)
-    if (!user) return res.status(404).json({ message: 'No user found' })
+    const user = req.user
 
     const recentActivities = await Activity.find({ user: user._id })
       .sort({ date: -1 })
@@ -347,15 +306,15 @@ router.get('/dashboard-stats', async (req, res) => {
 });
 
 // GET /api/users/favorites
-router.get('/favorites', async (req, res) => {
-  const user = await findCurrentUser(req);
+router.get('/favorites', requireAuth, async (req, res) => {
+  const user = req.user;
   await user.populate('favorites');
   return res.json({ favorites: user.favorites });
 });
 
-router.get('/downloads', async (req, res) => {
+router.get('/downloads', requireAuth, async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
+    const user = req.user;
     await user.populate('downloads');
     return res.json({ downloads: user.downloads || [] });
   } catch (err) {
@@ -363,9 +322,9 @@ router.get('/downloads', async (req, res) => {
   }
 });
 
-router.post('/download/:bookId', async (req, res) => {
+router.post('/download/:bookId', requireAuth, async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
+    const user = req.user;
     const { bookId } = req.params;
     let newAchievements = [];
     
@@ -383,9 +342,9 @@ router.post('/download/:bookId', async (req, res) => {
   }
 });
 
-router.post('/favorite/:bookId', async (req, res) => {
+router.post('/favorite/:bookId', requireAuth, async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
+    const user = req.user;
     const { bookId } = req.params;
     let newAchievements = [];
     
@@ -407,9 +366,9 @@ router.post('/favorite/:bookId', async (req, res) => {
   }
 });
 
-router.post('/log-activity', async (req, res) => {
+router.post('/log-activity', requireAuth, async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
+    const user = req.user;
     const { type, durationMinutes, pagesRead, bookId } = req.body;
     
     const activity = new Activity({
@@ -444,9 +403,9 @@ router.post('/log-activity', async (req, res) => {
   }
 });
 
-router.get('/today-activity', async (req, res) => {
+router.get('/today-activity', requireAuth, async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
+    const user = req.user;
     
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -479,9 +438,9 @@ router.get('/today-activity', async (req, res) => {
 // ============ ACHIEVEMENTS ============
 
 // GET /api/users/achievements - Get all achievements with user's unlock status
-router.get('/achievements', async (req, res) => {
+router.get('/achievements', requireAuth, async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
+    const user = req.user;
     const achievements = await getUserAchievements(user._id);
     const totalPoints = user.totalPoints || 0;
     const unlockedCount = achievements.filter(a => a.unlocked).length;
@@ -502,9 +461,9 @@ router.get('/achievements', async (req, res) => {
 });
 
 // POST /api/users/check-achievements - Manually trigger achievement check
-router.post('/check-achievements', async (req, res) => {
+router.post('/check-achievements', requireAuth, async (req, res) => {
   try {
-    const user = await findCurrentUser(req);
+    const user = req.user;
     const { triggerType, extraData } = req.body;
 
     const newAchievements = await checkAndUnlockAchievements(user._id, triggerType, extraData || {});

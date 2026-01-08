@@ -8,6 +8,11 @@ const multer = require('multer')
 const cloudinary = require('../config/cloudinary')
 const fs = require('fs')
 const path = require('path')
+const { requireAuth, requireAdmin } = require('../middleware/auth')
+
+// Apply authentication and admin check to all admin routes
+router.use(requireAuth);
+router.use(requireAdmin);
 
 // Helper to determine the public backend origin. Prefer explicit BACKEND_URL, then
 // honor common proxy headers (x-forwarded-proto/host) so the generated URLs are

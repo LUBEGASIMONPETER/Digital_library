@@ -35,7 +35,8 @@ const BookLibrary = () => {
     const fetchBooks = async () => {
       setLoading(true)
       try {
-        const res = await apiFetch('/api/admin/books')
+        // Use public books endpoint for library browsing
+        const res = await apiFetch('/api/books')
         if (res.ok) {
           const data = await res.json()
           const mapped = (data.books || []).map(b => ({

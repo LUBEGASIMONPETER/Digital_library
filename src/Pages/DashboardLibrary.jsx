@@ -35,7 +35,8 @@ const DashboardLibrary = () => {
     ;(async () => {
       setLoading(true)
       try {
-        const res = await apiFetch('/api/admin/books')
+        // Use books API (authenticated users get full details including fileUrl)
+        const res = await apiFetch('/api/books')
         if (!res.ok) {
           console.error('Failed to fetch books for library', res.status)
           if (mounted) setBooks([])
