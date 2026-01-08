@@ -6,6 +6,7 @@ const cloudinary = require('cloudinary').v2
 // a `_configured` flag to the exported object so callers can detect whether Cloudinary
 // is actually usable.
 let configured = false
+let configError = null
 const rawUrl = process.env.CLOUDINARY_URL && String(process.env.CLOUDINARY_URL).trim()
 const hasKeys = process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.CLOUDINARY_CLOUD_NAME
 
@@ -14,10 +15,13 @@ if (rawUrl) {
     try {
       cloudinary.config({ url: rawUrl })
       configured = true
+      console.log('Cloudinary configured via CLOUDINARY_URL')
     } catch (err) {
-      console.warn('Cloudinary config failed for CLOUDINARY_URL:', err && err.message)
+      configError = err && err.message
+      console.warn('Cloudinary config failed for CLOUDINARY_URL:', configError)
     }
   } else {
+    configError = 'CLOUDINARY_URL does not start with cloudinary://'
     console.warn('CLOUDINARY_URL provided but does not start with "cloudinary://"; ignoring and falling back to individual keys')
   }
 }
@@ -30,16 +34,22 @@ if (!configured && hasKeys) {
       api_secret: process.env.CLOUDINARY_API_SECRET
     })
     configured = true
+    console.log('Cloudinary configured via individual keys (cloud_name:', process.env.CLOUDINARY_CLOUD_NAME, ')')
   } catch (err) {
-    console.warn('Cloudinary config failed for individual keys:', err && err.message)
+    configError = err && err.message
+    console.warn('Cloudinary config failed for individual keys:', configError)
   }
 }
 
 if (!configured) {
   console.warn('Cloudinary not configured. Uploads will fall back to local storage (/uploads).')
+  if (!rawUrl && !hasKeys) {
+    console.warn('Missing env vars: CLOUDINARY_URL or (CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET)')
+  }
 }
 
-// Attach a small flag so other modules can decide whether to call cloudinary uploader
+// Attach flags so other modules can detect Cloudinary status
 cloudinary._configured = configured
+cloudinary._configError = configError
 
 module.exports = cloudinary

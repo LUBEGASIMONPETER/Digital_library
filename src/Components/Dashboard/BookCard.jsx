@@ -66,6 +66,9 @@ const BookCard = ({ book }) => {
 
   const defaultImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='250' viewBox='0 0 200 250'%3E%3Crect width='200' height='250' fill='%23f3f4f6'/%3E%3Cpath d='M50 80 L150 80 L150 200 L50 200 Z' fill='%23d1d5db'/%3E%3Cpath d='M60 90 L140 90 L140 190 L60 190 Z' fill='%23e5e7eb'/%3E%3Cpath d='M70 100 L130 100 L130 180 L70 180 Z' fill='%23f9fafb'/%3E%3Ctext x='100' y='230' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EBook Cover%3C/text%3E%3C/svg%3E"
 
+  // Use coverUrl (from API) or image (legacy) or default
+  const coverImage = book.coverUrl || book.image || defaultImage
+
   return (
     <div onClick={() => navigate(`/dashboard/books/${book.id}`)} className="cursor-pointer group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden hover:scale-[1.02] transform">
       {/* Book Image */}
@@ -73,7 +76,7 @@ const BookCard = ({ book }) => {
         <div className="w-full h-48 bg-gray-200 relative">
           {!imageError ? (
             <img 
-              src={book.image || defaultImage} 
+              src={coverImage} 
               alt={book.title}
               className={`w-full h-48 object-cover transition-opacity duration-300 ${
                 imageLoaded ? 'opacity-100' : 'opacity-0'

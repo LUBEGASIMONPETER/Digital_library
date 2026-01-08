@@ -34,16 +34,30 @@ async function writeBufferToUploads(buffer, folder, filename) {
 const storage = multer.memoryStorage()
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }) // 50MB limit
 
-// helper to upload buffer to Cloudinary, returns upload result
+// helper to upload buffer to Cloudinary with timeout, returns upload result
 function uploadBufferToCloudinary(buffer, options = {}) {
   return new Promise((resolve, reject) => {
+    // Set a 60 second timeout for the upload
+    const timeout = setTimeout(() => {
+      reject(new Error('Cloudinary upload timeout after 60 seconds'))
+    }, 60000)
+
     try {
-      const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
-        if (error) return reject(error)
-        resolve(result)
+      const stream = cloudinary.uploader.upload_stream(
+        { ...options, timeout: 60000 },
+        (error, result) => {
+          clearTimeout(timeout)
+          if (error) return reject(error)
+          resolve(result)
+        }
+      )
+      stream.on('error', (err) => {
+        clearTimeout(timeout)
+        reject(err)
       })
       stream.end(buffer)
     } catch (err) {
+      clearTimeout(timeout)
       reject(err)
     }
   })
@@ -122,10 +136,77 @@ router.get('/diag', async (req, res) => {
         return 'error'
       }
     })()
-  return res.json({ node_env: process.env.NODE_ENV || 'not-set', frontend, origin, allowed, mailerConfigured, mailerReady, cloudinaryConfigured, allowedOrigins, lastError })
+  
+  // Cloudinary details
+  const cloudinaryDetails = {
+    configured: CLOUDINARY_CONFIGURED,
+    configError: cloudinary._configError || null,
+    cloudName: CLOUDINARY_CONFIGURED ? (cloudinary.config().cloud_name || 'unknown') : null,
+    hasUrl: Boolean(process.env.CLOUDINARY_URL),
+    hasKeys: Boolean(process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.CLOUDINARY_CLOUD_NAME)
+  }
+  
+  return res.json({ 
+    node_env: process.env.NODE_ENV || 'not-set', 
+    frontend, 
+    origin, 
+    allowed, 
+    mailerConfigured, 
+    mailerReady, 
+    cloudinaryConfigured: CLOUDINARY_CONFIGURED, 
+    cloudinaryDetails,
+    backendUrl: process.env.BACKEND_URL || 'not-set',
+    allowedOrigins, 
+    lastError 
+  })
   } catch (err) {
     console.error('Diag error', err)
     return res.status(500).json({ message: 'Diag failed', error: err.message })
+  }
+})
+
+// POST /api/admin/test-cloudinary
+// Test Cloudinary upload with a tiny test image
+router.post('/test-cloudinary', async (req, res) => {
+  if (!CLOUDINARY_CONFIGURED) {
+    return res.status(400).json({ 
+      message: 'Cloudinary not configured',
+      configError: cloudinary._configError || 'Missing CLOUDINARY_URL or individual keys',
+      suggestion: 'Set CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME or set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET'
+    })
+  }
+  
+  try {
+    // Create a tiny 1x1 pixel PNG for testing
+    const testBuffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64')
+    
+    const result = await uploadBufferToCloudinary(testBuffer, { 
+      resource_type: 'image', 
+      folder: 'dlibrary/test',
+      public_id: 'test-' + Date.now()
+    })
+    
+    // Clean up test file
+    if (result && result.public_id) {
+      try {
+        await cloudinary.uploader.destroy(result.public_id)
+      } catch (e) {
+        // ignore cleanup errors
+      }
+    }
+    
+    return res.json({ 
+      message: 'Cloudinary test successful!',
+      cloudName: cloudinary.config().cloud_name,
+      testUrl: result && result.secure_url
+    })
+  } catch (err) {
+    console.error('Cloudinary test failed', err)
+    return res.status(500).json({ 
+      message: 'Cloudinary test failed',
+      error: err.message || String(err),
+      suggestion: 'Check your Cloudinary credentials'
+    })
   }
 })
 
