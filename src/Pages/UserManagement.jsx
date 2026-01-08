@@ -646,8 +646,9 @@ const UserManagement = () => {
         </div>
 
         {/* Users Table */}
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <table className="w-full">
+        <div className="rounded-lg border border-gray-200 bg-white">
+          <div className="overflow-x-auto sm:overflow-visible">
+            <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="pl-6 pr-3 py-3 text-left">
@@ -695,6 +696,7 @@ const UserManagement = () => {
               <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
             </div>
           )}
+          </div>
         </div>
 
         {/* Pagination */}
@@ -825,7 +827,7 @@ const UserRow = ({ user, index, totalInPage, selected, onSelect, onDelete, onCha
   }
 
   // Determine if dropdown should open upwards (near the bottom of the visible list)
-  const openUpwards = totalInPage > 4 && index >= totalInPage - 2
+  const openUpwards = totalInPage >= 3 && index >= totalInPage - 2
 
   return (
     <tr className="hover:bg-gray-50 transition-colors duration-150">

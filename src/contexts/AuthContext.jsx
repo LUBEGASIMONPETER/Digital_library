@@ -27,7 +27,14 @@ const decodeJwt = (token) => {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem('auth_user')
+      return raw ? JSON.parse(raw) : null
+    } catch (err) {
+      return null
+    }
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -63,12 +70,6 @@ export function AuthProvider({ children }) {
           // Clean the URL (remove token parameter)
           const cleanUrl = window.location.pathname
           window.history.replaceState({}, document.title, cleanUrl)
-        } else {
-          // No URL token, check localStorage
-          const raw = localStorage.getItem('auth_user')
-          if (raw) {
-            setUser(JSON.parse(raw))
-          }
         }
       } catch (err) {
         console.error('Failed to initialize auth', err)
@@ -81,13 +82,15 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    try {
-      if (user) localStorage.setItem('auth_user', JSON.stringify(user))
-      else localStorage.removeItem('auth_user')
-    } catch (err) {
-      console.error('Failed to persist auth_user', err)
+    if (!loading) {
+      try {
+        if (user) localStorage.setItem('auth_user', JSON.stringify(user))
+        else localStorage.removeItem('auth_user')
+      } catch (err) {
+        console.error('Failed to persist auth_user', err)
+      }
     }
-  }, [user])
+  }, [user, loading])
 
   const signOut = () => {
     // clear storage and local state
