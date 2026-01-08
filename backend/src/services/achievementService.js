@@ -1,5 +1,6 @@
 const Achievement = require('../models/Achievement');
 const User = require('../models/User');
+const { sendAchievementEmail } = require('./emailService');
 
 // All available achievements in the system
 const ACHIEVEMENTS_LIST = [
@@ -280,6 +281,11 @@ async function unlockAchievement(userId, achievementKey) {
     });
     user.totalPoints = (user.totalPoints || 0) + achievement.points;
     await user.save();
+
+    // Send achievement email asynchronously
+    sendAchievementEmail(user.email, user.name, achievement).catch(err => {
+      console.error('Achievement email failed:', err);
+    });
 
     return {
       unlocked: true,

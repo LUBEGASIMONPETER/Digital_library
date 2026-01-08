@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const User = require('../models/User');
 const debug = require('../config/debugStore');
-const { sendVerificationEmail } = require('../config/mailer');
+const { sendVerificationEmail, sendWelcomeEmail } = require('../services/emailService');
 const { checkAndUnlockAchievements } = require('../services/achievementService');
 
 exports.register = async (req, res) => {
@@ -61,6 +61,8 @@ exports.register = async (req, res) => {
   // send verification email (if SMTP configured, will send; otherwise logged to console)
   try {
     await sendVerificationEmail(email, { link: verifyLink, code });
+    // Also send a preliminary welcome email
+    await sendWelcomeEmail(email, resolvedName, false);
   } catch (mailErr) {
     // Don't fail the registration if email sending fails. Log for diagnostics.
     console.error('Error sending verification email for', email, mailErr && mailErr.message ? mailErr.message : mailErr);
@@ -93,6 +95,13 @@ exports.verify = async (req, res) => {
     user.verificationTokenExpires = undefined;
     await user.save();
 
+    // Send successful verification welcome email
+    try {
+      await sendWelcomeEmail(user.email, user.name, true);
+    } catch (err) {
+      console.error('Welcome email after verification failed:', err);
+    }
+
     return res.json({ message: 'Email verified successfully' });
   } catch (err) {
     console.error(err);
@@ -113,6 +122,13 @@ exports.verifyByCode = async (req, res) => {
     user.verificationCode = undefined;
     user.verificationCodeExpires = undefined;
     await user.save();
+
+    // Send successful verification welcome email
+    try {
+      await sendWelcomeEmail(user.email, user.name, true);
+    } catch (err) {
+      console.error('Welcome email after verification failed:', err);
+    }
 
     return res.json({ message: 'Email verified successfully' });
   } catch (err) {

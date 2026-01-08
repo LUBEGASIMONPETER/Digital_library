@@ -2,6 +2,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 const { checkAndUnlockAchievements } = require('../services/achievementService');
+const { sendWelcomeEmail } = require('../services/emailService');
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -64,6 +65,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       });
 
       await newUser.save();
+
+      // Send welcome email for newly created Google user
+      try {
+        await sendWelcomeEmail(newUser.email, newUser.name, true);
+      } catch (mailErr) {
+        console.error('Welcome email failed for Google user:', mailErr);
+      }
 
       // Unlock "The Initiate" achievement for creating an account
       try {

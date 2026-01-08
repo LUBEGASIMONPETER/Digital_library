@@ -527,7 +527,7 @@ const BookCatalog = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search resources by title, author, or ISBN..."
+                placeholder="Search resources by title, author/examiner, or ISBN..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800 transition-colors duration-200"
@@ -828,7 +828,10 @@ const BookCard = ({ book, selected, onSelect, onDelete, onEdit }) => {
           <h3 className="font-medium text-gray-900 mb-1 line-clamp-2" title={book.title}>
             {book.title}
           </h3>
-          <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
+          <p className="text-sm text-gray-600 mb-2">
+            {book.resourceType === 'past_paper' ? 'Examiner: ' : 'by '}
+            {book.author}
+          </p>
           
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-medium text-gray-500">{book.category}</span>
@@ -967,14 +970,16 @@ const ResourceModal = ({ mode, book, onChange, onSubmit, onClose, coverPreview, 
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Author *</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  {book.resourceType === 'past_paper' ? 'Examiner *' : 'Author *'}
+                </label>
                 <input
                   type="text"
                   required
                   value={book.author}
                   onChange={(e) => onChange({...book, author: e.target.value})}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
-                  placeholder="Author name"
+                  placeholder={book.resourceType === 'past_paper' ? 'Examiner name' : 'Author name'}
                 />
               </div>
 
@@ -1286,7 +1291,9 @@ const DeleteModal = ({ book, onConfirm, onCancel }) => (
       
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <p className="font-medium text-gray-900">{book?.title}</p>
-        <p className="text-sm text-gray-500">{book?.author}</p>
+        <p className="text-sm text-gray-500">
+          {book?.resourceType === 'past_paper' ? 'Examiner: ' : ''}{book?.author}
+        </p>
         <p className="text-xs text-gray-400 mt-1">{book?.category}</p>
       </div>
       

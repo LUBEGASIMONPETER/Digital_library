@@ -70,11 +70,11 @@ else
     check 1 "mailer.js missing SendGrid support"
 fi
 
-# Check if sendVerificationEmail exists
-if grep -q "sendVerificationEmail" src/config/mailer.js; then
-    check 0 "sendVerificationEmail function exists"
+# Check if sendVerificationEmail exists in emailService.js
+if grep -q "sendVerificationEmail" src/services/emailService.js; then
+    check 0 "sendVerificationEmail function exists in emailService.js"
 else
-    check 1 "sendVerificationEmail function missing"
+    check 1 "sendVerificationEmail function missing from emailService.js"
 fi
 
 echo ""

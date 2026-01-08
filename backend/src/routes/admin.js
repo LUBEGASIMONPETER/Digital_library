@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { sendVerificationEmail, sendAccountActionEmail } = require('../config/mailer');
+const { sendVerificationEmail, sendAccountActionEmail } = require('../services/emailService');
 const User = require('../models/User');
 const Book = require('../models/Book')
 const mongoose = require('mongoose')
@@ -590,12 +590,19 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
             code: uplErr.http_code || uplErr.code,
             name: uplErr.name
           })
+          
+          // Check for specific auth errors to give better feedback
+          const isAuthConfigError = uplErr.http_code === 401 || (uplErr.message && uplErr.message.includes('api_key'))
+          const errorMessage = isAuthConfigError 
+            ? 'Cloudinary Authentication Error: Please check your CLOUDINARY_API_KEY and credentials in Render settings.'
+            : 'Failed to upload cover image. Cloudinary error or connection timeout.'
+
           const resp = { 
-            message: 'Failed to upload cover image. Cloudinary error or connection timeout.', 
+            message: errorMessage, 
             error: uplErr.message || String(uplErr) 
           }
           if (process.env.DEBUG_UPLOADS === 'true') resp.stack = uplErr.stack || String(uplErr)
-          return res.status(502).json(resp)
+          return res.status(500).json(resp)
         }
       }
       // coverUrl was set above (either from local fallback or from Cloudinary when configured)
@@ -639,7 +646,7 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
             console.warn('Fell back to local book file storage due to Cloudinary error')
           } catch (fsErr) {
             console.error('Fallback local write for book file also failed', fsErr)
-            return res.status(502).json({ message: 'Failed to upload book file', error: cloudErrInfo.message })
+            return res.status(500).json({ message: 'Failed to upload book file', error: cloudErrInfo.message })
           }
         }
       }

@@ -29,6 +29,7 @@ const DashboardDownloads = () => {
             pages: b.pages || null,
             subject: b.category || '',
             class: b.level || '',
+            resourceType: b.resourceType || 'textbook',
           }))
           setDownloads(mapped)
         }

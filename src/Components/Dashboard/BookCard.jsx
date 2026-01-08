@@ -216,7 +216,8 @@ const BookCard = ({ book }) => {
             {book.title}
           </h3>
           <p className="text-[11px] md:text-sm text-slate-600 mt-1 line-clamp-1">
-            by {book.author || 'Unknown Author'}
+            {book.resourceType === 'past_paper' ? 'by Examiner: ' : 'by '}
+            {book.author || (book.resourceType === 'past_paper' ? 'Unknown Examiner' : 'Unknown Author')}
           </p>
         </div>
 

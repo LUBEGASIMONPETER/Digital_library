@@ -158,7 +158,37 @@ const BookPage = () => {
         </div>
 
         <div className="flex-1">
-          {/* ...existing code... */}
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{book.title}</h1>
+          <p className="text-lg text-gray-600 mb-6">
+            {book.resourceType === 'past_paper' ? 'Examiner: ' : 'by '}
+            {book.author}
+          </p>
+
+          <div className="flex flex-wrap gap-4 mb-8">
+            <div className="bg-gray-50 px-4 py-2 rounded-xl">
+              <span className="block text-xs text-gray-500 uppercase font-semibold">Category</span>
+              <span className="text-gray-900">{book.category}</span>
+            </div>
+            {book.resourceType === 'past_paper' && (
+              <>
+                <div className="bg-gray-50 px-4 py-2 rounded-xl">
+                  <span className="block text-xs text-gray-500 uppercase font-semibold">Exam Year</span>
+                  <span className="text-gray-900">{book.examYear}</span>
+                </div>
+                <div className="bg-gray-50 px-4 py-2 rounded-xl">
+                  <span className="block text-xs text-gray-500 uppercase font-semibold">Exam Board</span>
+                  <span className="text-gray-900">{book.examBoard}</span>
+                </div>
+              </>
+            )}
+            {book.resourceType !== 'past_paper' && book.publishedYear && (
+              <div className="bg-gray-50 px-4 py-2 rounded-xl">
+                <span className="block text-xs text-gray-500 uppercase font-semibold">Published</span>
+                <span className="text-gray-900">{book.publishedYear}</span>
+              </div>
+            )}
+          </div>
+
           <div className="mt-6">
             <h3 className="font-semibold mb-2">Description</h3>
             <p className="text-gray-700 whitespace-pre-line">{book.description || 'No description available.'}</p>

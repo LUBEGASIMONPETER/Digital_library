@@ -58,6 +58,7 @@ const DashboardLibrary = () => {
           pages: b.pages || null,
           subject: b.category || '',
           class: b.level || '',
+          resourceType: b.resourceType || 'textbook',
         }))
         if (mounted) setBooks(mapped)
       } catch (err) {
@@ -258,16 +259,16 @@ const DashboardLibrary = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
                   <User className="w-4 h-4 text-gray-400" />
-                  Author
+                  Author/Examiner
                 </label>
                 <select
                   value={filters.author}
                   onChange={(e) => handleFilterChange('author', e.target.value)}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200"
                 >
-                  <option value="">All Authors</option>
+                  <option value="">All Authors/Examiners</option>
                   {uniqueAuthors.map(author => (
                     <option key={author} value={author}>{author}</option>
                   ))}

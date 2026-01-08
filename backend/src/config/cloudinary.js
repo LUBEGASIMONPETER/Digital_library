@@ -11,7 +11,7 @@ const rawUrl = process.env.CLOUDINARY_URL && String(process.env.CLOUDINARY_URL).
 const hasKeys = process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.CLOUDINARY_CLOUD_NAME
 
 if (rawUrl) {
-  if (rawUrl.startsWith('cloudinary://')) {
+  if (rawUrl.startsWith('cloudinary://') && !rawUrl.includes('<your_')) {
     try {
       cloudinary.config({ url: rawUrl })
       configured = true
@@ -21,23 +21,30 @@ if (rawUrl) {
       console.warn('Cloudinary config failed for CLOUDINARY_URL:', configError)
     }
   } else {
-    configError = 'CLOUDINARY_URL does not start with cloudinary://'
-    console.warn('CLOUDINARY_URL provided but does not start with "cloudinary://"; ignoring and falling back to individual keys')
+    configError = rawUrl.includes('<your_') ? 'CLOUDINARY_URL contains placeholder values' : 'CLOUDINARY_URL does not start with cloudinary://'
+    console.warn(configError + '; ignoring and falling back to individual keys')
   }
 }
 
 if (!configured && hasKeys) {
-  try {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET
-    })
-    configured = true
-    console.log('Cloudinary configured via individual keys (cloud_name:', process.env.CLOUDINARY_CLOUD_NAME, ')')
-  } catch (err) {
-    configError = err && err.message
-    console.warn('Cloudinary config failed for individual keys:', configError)
+  const isPlaceholder = String(process.env.CLOUDINARY_API_KEY).includes('<your_') || String(process.env.CLOUDINARY_CLOUD_NAME).includes('<your_')
+  
+  if (isPlaceholder) {
+    configError = 'Cloudinary keys contain placeholder values (<your_...>); skipping configuration'
+    console.warn(configError)
+  } else {
+    try {
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET
+      })
+      configured = true
+      console.log('Cloudinary configured via individual keys (cloud_name:', process.env.CLOUDINARY_CLOUD_NAME, ')')
+    } catch (err) {
+      configError = err && err.message
+      console.warn('Cloudinary config failed for individual keys:', configError)
+    }
   }
 }
 
