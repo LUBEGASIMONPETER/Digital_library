@@ -22,40 +22,44 @@ async function sendVerificationEmail(to, link) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Your Digital Library Account</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; color: #333; line-height: 1.6; background-color: #f8f9fa;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1e293b; line-height: 1.6; background-color: #f8fafc;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
             <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e8e8e8;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
                     <tr>
-                        <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 1px solid #f0f0f0;">
-                            <h1 style="margin: 0 0 10px 0; font-size: 28px; font-weight: 300; color: #2c3e50;">Email Verification</h1>
-                            <p style="margin: 0; color: #7f8c8d; font-size: 16px;">Digital Library Account Activation</p>
+                        <td style="padding: 48px 40px 32px 40px; text-align: center;">
+                            <div style="width: 64px; height: 64px; background-color: #1d4ed8; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z"/>
+                                </svg>
+                            </div>
+                            <h1 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 700; color: #0f172a;">Email Verification</h1>
+                            <p style="margin: 0; color: #64748b; font-size: 16px;">Digital Library Account Activation</p>
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding: 40px 40px 30px 40px;">
-                            <p style="margin: 0 0 20px 0; font-size: 16px; color: #555;">Thank you for creating an account with <strong style="color: #2c3e50;">Digital Library</strong>. To complete your registration, please use the verification code below:</p>
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 40px auto; text-align: center;">
-                                <tr>
-                                    <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3px; border-radius: 10px;">
-                                        <div style="background-color: #ffffff; padding: 30px 40px; border-radius: 8px;">
-                                            <p style="margin: 0 0 15px 0; font-size: 14px; color: #7f8c8d; font-weight: 500;">YOUR VERIFICATION CODE</p>
-                                            <div style="font-size: 42px; font-weight: 700; letter-spacing: 8px; color: #2c3e50; font-family: 'Courier New', monospace; padding: 10px; background-color: #f8f9fa; border-radius: 6px; border: 1px dashed #e0e0e0;">${link.code}</div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                            <p style="margin: 25px 0 15px 0; font-size: 15px; color: #555;">Enter this code on the verification page to activate your account.</p>
-                            <div style="background-color: #f0f7ff; border-left: 4px solid #3498db; padding: 16px; margin: 25px 0; border-radius: 4px;">
-                                <p style="margin: 0 0 10px 0; font-size: 14px; color: #2c3e50; font-weight: 500;">Prefer one-click verification?</p>
-                                <a href="${link.link}" style="background-color: #3498db; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: 600; font-size: 14px;">Verify Automatically</a>
+                        <td style="padding: 0 40px 40px 40px;">
+                            <p style="margin: 0 0 24px 0; font-size: 16px; color: #475569;">Thank you for creating an account with <strong style="color: #1d4ed8;">Digital Library</strong>. To complete your registration, please use the verification code below:</p>
+                            
+                            <div style="margin: 40px auto; text-align: center;">
+                                <div style="background-color: #ffffff; padding: 32px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                                    <p style="margin: 0 0 12px 0; font-size: 14px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">YOUR VERIFICATION CODE</p>
+                                    <div style="font-size: 48px; font-weight: 700; letter-spacing: 12px; color: #1d4ed8; font-family: 'Courier New', monospace; padding: 16px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; margin: 0 auto; display: inline-block; min-width: 320px;">${link.code}</div>
+                                </div>
+                            </div>
+                            
+                            <p style="margin: 32px 0 16px 0; font-size: 15px; color: #475569;">Enter this code on the verification page to activate your account.</p>
+                            
+                            <div style="background-color: #eff6ff; border: 1px solid #dbeafe; padding: 24px; margin: 32px 0; border-radius: 8px;">
+                                <p style="margin: 0 0 16px 0; font-size: 16px; color: #1e40af; font-weight: 600;">Prefer one-click verification?</p>
+                                <a href="${link.link}" style="background-color: #2563eb; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 16px; border: none; cursor: pointer;">Verify Automatically</a>
                             </div>
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding: 30px 40px 40px 40px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
-                            <p style="margin: 0; font-size: 12px; color: #bdc3c7; text-align: center;">
+                        <td style="padding: 32px 40px 40px 40px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 12px 12px;">
+                            <p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center;">
                                 &copy; ${new Date().getFullYear()} Digital Library. All rights reserved.
                             </p>
                         </td>
@@ -74,12 +78,16 @@ async function sendVerificationEmail(to, link) {
     <meta charset="UTF-8">
     <title>Verify Your Email</title>
 </head>
-<body style="font-family: sans-serif; background-color: #f8f9fa; padding: 20px;">
-    <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; border: 1px solid #e8e8e8;">
-        <h2>Verify Your Email</h2>
-        <p>Welcome to Digital Library! Click the button below to verify your email address:</p>
-        <a href="${link}" style="display: inline-block; background: #667eea; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: bold;">Verify Email Address</a>
-        <p style="margin-top: 20px; font-size: 12px; color: #777;">If the button doesn't work, copy this link: ${link}</p>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: white; padding: 48px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #0f172a;">Verify Your Email</h2>
+            <p style="color: #64748b; margin: 0;">Welcome to Digital Library! Click the button below to verify your email address:</p>
+        </div>
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="${link}" style="background-color: #2563eb; color: white; padding: 16px 36px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block; border: none; cursor: pointer; transition: background-color 0.2s;">Verify Email Address</a>
+        </div>
+        <p style="margin-top: 32px; font-size: 14px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 24px;">If the button doesn't work, copy this link: <span style="color: #2563eb; word-break: break-all;">${link}</span></p>
     </div>
 </body>
 </html>`;
@@ -104,38 +112,43 @@ async function sendWelcomeEmail(to, name, isVerified = false) {
     const html = `
 <!DOCTYPE html>
 <html>
-<body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0;">
-    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f7f6; padding: 40px 0;">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 0;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 60px 0;">
         <tr>
             <td align="center">
-                <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-                    <tr style="background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);">
-                        <td style="padding: 40px; text-align: center; color: white;">
-                            <h1 style="margin: 0; font-size: 32px;">Digital Library</h1>
+                <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.08);">
+                    <tr style="background-color: #1d4ed8;">
+                        <td style="padding: 48px; text-align: center;">
+                            <div style="width: 72px; height: 72px; background-color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="#1d4ed8" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2L1 8V22H23V8L12 2ZM12 12L5 8L12 4L19 8L12 12ZM21 20H3V10L12 15L21 10V20Z"/>
+                                </svg>
+                            </div>
+                            <h1 style="margin: 0; font-size: 36px; font-weight: 700; color: white;">Digital Library</h1>
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding: 40px;">
-                            <h2 style="color: #2c3e50; margin-top: 0;">Hello ${name || 'Explorer'},</h2>
-                            <p style="font-size: 18px; color: #34495e; line-height: 1.6;">${title}</p>
-                            <p style="color: #6d7278; font-size: 16px; line-height: 1.6;">${message}</p>
+                        <td style="padding: 48px;">
+                            <h2 style="color: #1e293b; margin-top: 0; margin-bottom: 24px; font-size: 28px;">Hello ${name || 'Explorer'},</h2>
+                            <p style="font-size: 20px; color: #334155; line-height: 1.6; font-weight: 600; margin-bottom: 24px;">${title}</p>
+                            <p style="color: #64748b; font-size: 16px; line-height: 1.7; margin-bottom: 40px;">${message}</p>
                             
-                            <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #b21f1f;">
-                                <p style="margin: 0; font-weight: bold; color: #2c3e50;">What's next?</p>
-                                <ul style="margin: 10px 0; padding-left: 20px; color: #555;">
+                            <div style="margin: 40px 0; padding: 28px; background-color: #f8fafc; border-radius: 12px; border-left: 4px solid #1d4ed8;">
+                                <p style="margin: 0 0 16px 0; font-weight: 700; color: #1e293b; font-size: 18px;">What's next?</p>
+                                <ul style="margin: 0; padding-left: 24px; color: #475569; font-size: 16px; line-height: 1.8;">
                                     <li>Explore over 1000+ digital resources</li>
                                     <li>Track your reading achievements</li>
                                     <li>Build your personal library</li>
                                 </ul>
                             </div>
 
-                            <div style="text-align: center; margin-top: 40px;">
-                                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard" style="background-color: #1a2a6c; color: white; padding: 15px 35px; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 16px;">Go to Dashboard</a>
+                            <div style="text-align: center; margin-top: 48px;">
+                                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard" style="background-color: #2563eb; color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block; border: none; cursor: pointer; transition: background-color 0.2s;">Go to Dashboard</a>
                             </div>
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding: 30px; background-color: #f9f9f9; text-align: center; color: #95a5a6; font-size: 12px;">
+                        <td style="padding: 32px; background-color: #f8fafc; text-align: center; color: #94a3b8; font-size: 14px; border-top: 1px solid #e2e8f0;">
                             &copy; ${new Date().getFullYear()} Digital Library. Celebrating knowledge together.
                         </td>
                     </tr>
@@ -161,33 +174,33 @@ async function sendAchievementEmail(to, userName, achievement) {
     const html = `
 <!DOCTYPE html>
 <html>
-<body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0;">
-    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 40px 0;">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 0;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 60px 0;">
         <tr>
             <td align="center">
-                <table width="550" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 15px 45px rgba(0,0,0,0.15);">
-                    <tr style="background-color: #FFD700;">
-                        <td style="padding: 30px; text-align: center;">
-                            <div style="font-size: 60px; margin-bottom: 10px;">🏆</div>
-                            <h1 style="margin: 0; color: #000; font-size: 26px; text-transform: uppercase; letter-spacing: 2px;">Achievement Unlocked!</h1>
+                <table width="550" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 15px 50px rgba(0,0,0,0.1);">
+                    <tr style="background-color: #2563eb;">
+                        <td style="padding: 40px; text-align: center;">
+                            <div style="font-size: 64px; margin-bottom: 16px;">🏆</div>
+                            <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Achievement Unlocked!</h1>
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding: 40px; text-align: center;">
-                            <p style="font-size: 18px; color: #333;">Amazing work, <strong>${userName}</strong>!</p>
-                            <div style="margin: 25px auto; padding: 25px; border: 2px dashed #FFD700; border-radius: 15px; background-color: #fffdf0; max-width: 400px;">
-                                <h2 style="color: #b8860b; margin: 0 0 10px 0;">${achievement.name || achievement.title}</h2>
-                                <p style="color: #666; font-style: italic; margin: 0 0 15px 0;">"${achievement.description}"</p>
-                                <div style="display: inline-block; background-color: #b8860b; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 14px;">
+                        <td style="padding: 48px; text-align: center;">
+                            <p style="font-size: 20px; color: #334155; margin-bottom: 32px;">Amazing work, <strong style="color: #1d4ed8;">${userName}</strong>!</p>
+                            <div style="margin: 32px auto; padding: 32px; border: 2px solid #dbeafe; border-radius: 16px; background-color: #eff6ff; max-width: 420px;">
+                                <h2 style="color: #1d4ed8; margin: 0 0 16px 0; font-size: 22px;">${achievement.name || achievement.title}</h2>
+                                <p style="color: #475569; font-style: italic; margin: 0 0 24px 0; font-size: 16px; line-height: 1.6;">"${achievement.description}"</p>
+                                <div style="display: inline-block; background-color: #1d4ed8; color: white; padding: 8px 20px; border-radius: 20px; font-weight: 600; font-size: 15px;">
                                     +${achievement.points} XP Earned
                                 </div>
                             </div>
-                            <p style="color: #7f8c8d; line-height: 1.6;">You're making incredible progress in your digital journey. Keep exploring the library to unlock even more rewards!</p>
-                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/achievements" style="display: inline-block; margin-top: 20px; color: #b8860b; font-weight: bold; text-decoration: none; border-bottom: 2px solid #FFD700;">View All My Achievements →</a>
+                            <p style="color: #64748b; line-height: 1.7; margin: 32px 0; font-size: 16px;">You're making incredible progress in your digital journey. Keep exploring the library to unlock even more rewards!</p>
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/achievements" style="color: #2563eb; font-weight: 600; text-decoration: none; font-size: 16px; border-bottom: 2px solid #2563eb; padding-bottom: 4px; display: inline-block;">View All My Achievements →</a>
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding: 20px; background-color: #f8f9fa; text-align: center; color: #bdc3c7; font-size: 12px;">
+                        <td style="padding: 32px; background-color: #f8fafc; text-align: center; color: #94a3b8; font-size: 14px; border-top: 1px solid #e2e8f0;">
                             Proudly delivered by the Digital Library Achievement System
                         </td>
                     </tr>
@@ -207,7 +220,6 @@ async function sendAchievementEmail(to, userName, achievement) {
  * @param {Object} opts - Options { action, reason, until, adminName, userName, appealInstructions }
  */
 async function sendAccountActionEmail(to, opts = {}) {
-    // Re-use existing logic from mailer.js but cleaned up
     const { action, reason, until, adminName, userName, appealInstructions } = opts;
     
     const subjectMap = {
@@ -223,9 +235,9 @@ async function sendAccountActionEmail(to, opts = {}) {
     }) : null;
 
     const actionDetails = {
-        banned: { title: 'Account Deactivated', icon: '🔒', description: 'Your account has been permanently deactivated.', color: '#DC2626' },
-        suspended: { title: 'Account Suspended', icon: '⏸️', description: `Your account has been temporarily suspended until ${prettyUntil}.`, color: '#D97706' },
-        deleted: { title: 'Account Removed', icon: '🗑️', description: 'Your account has been permanently removed from our system.', color: '#57534E' },
+        banned: { title: 'Account Deactivated', icon: '🔒', description: 'Your account has been permanently deactivated.', color: '#dc2626' },
+        suspended: { title: 'Account Suspended', icon: '⏸️', description: `Your account has been temporarily suspended until ${prettyUntil}.`, color: '#d97706' },
+        deleted: { title: 'Account Removed', icon: '🗑️', description: 'Your account has been permanently removed from our system.', color: '#57534e' },
         restored: { title: 'Account Restored', icon: '✅', description: 'Your account access has been successfully restored.', color: '#059669' }
     };
 
@@ -234,19 +246,28 @@ async function sendAccountActionEmail(to, opts = {}) {
     const html = `
 <!DOCTYPE html>
 <html>
-<body style="font-family: sans-serif; padding: 20px;">
-    <div style="max-width: 600px; margin: 0 auto; background: white; border: 1px solid #ddd; border-top: 4px solid ${currentAction.color}; border-radius: 8px; overflow: hidden;">
-        <div style="padding: 20px; background: #f8f9fa; text-align: center;">
-            <span style="font-size: 40px;">${currentAction.icon}</span>
-            <h1 style="margin: 10px 0;">${currentAction.title}</h1>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: white; border: 1px solid #e2e8f0; border-top: 4px solid ${currentAction.color}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="padding: 32px; background-color: #f8fafc; text-align: center; border-bottom: 1px solid #e2e8f0;">
+            <div style="width: 64px; height: 64px; background-color: ${currentAction.color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                <span style="font-size: 32px;">${currentAction.icon}</span>
+            </div>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">${currentAction.title}</h1>
         </div>
-        <div style="padding: 30px;">
-            <p>Hello ${userName || 'User'},</p>
-            <p>${currentAction.description}</p>
-            ${reason ? `<div style="background: #fdf2f2; padding: 15px; border-radius: 5px; margin: 20px 0;"><strong>Reason:</strong> ${reason}</div>` : ''}
-            <p>If you have questions, please contact our support team.</p>
+        <div style="padding: 40px;">
+            <p style="margin: 0 0 24px 0; font-size: 16px; color: #334155;">Hello ${userName || 'User'},</p>
+            <p style="margin: 0 0 32px 0; font-size: 16px; color: #475569;">${currentAction.description}</p>
+            
+            ${reason ? `
+            <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #dc2626;">
+                <p style="margin: 0; font-size: 14px; color: #991b1b;"><strong>Reason:</strong> ${reason}</p>
+            </div>` : ''}
+            
+            ${adminName ? `<p style="margin: 0 0 16px 0; font-size: 14px; color: #64748b;"><strong>Action by:</strong> ${adminName}</p>` : ''}
+            
+            <p style="margin: 32px 0 0 0; font-size: 14px; color: #64748b;">If you have questions, please contact our support team.</p>
         </div>
-        <div style="padding: 20px; background: #f8f9fa; border-top: 1px solid #ddd; text-align: center; font-size: 12px; color: #777;">
+        <div style="padding: 24px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8;">
             &copy; ${new Date().getFullYear()} Digital Library. All rights reserved.
         </div>
     </div>
