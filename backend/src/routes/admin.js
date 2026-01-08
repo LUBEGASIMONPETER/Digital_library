@@ -662,6 +662,96 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
   }
 })
 
+// POST /api/admin/books/fix-urls
+// Utility endpoint to fix books with localhost or incorrect URLs.
+// Will replace any localhost:XXXX in coverUrl/fileUrl with the correct BACKEND_URL.
+router.post('/books/fix-urls', async (req, res) => {
+  if (!allowedFromFrontend(req)) {
+    return res.status(403).json({ message: 'Forbidden in production' })
+  }
+
+  const backendOrigin = getBackendOrigin(req)
+  if (!backendOrigin || backendOrigin.includes('localhost')) {
+    return res.status(400).json({
+      message: 'Cannot fix URLs: BACKEND_URL is not set or still points to localhost. Set BACKEND_URL env var to your production backend URL.'
+    })
+  }
+
+  try {
+    // Find all books with localhost in their URLs
+    const books = await Book.find({
+      $or: [
+        { coverUrl: { $regex: /localhost/i } },
+        { fileUrl: { $regex: /localhost/i } }
+      ]
+    })
+
+    if (books.length === 0) {
+      return res.json({ message: 'No books with localhost URLs found', fixed: 0 })
+    }
+
+    let fixed = 0
+    for (const book of books) {
+      let changed = false
+      
+      // Fix coverUrl
+      if (book.coverUrl && /localhost/i.test(book.coverUrl)) {
+        // Extract the path portion after localhost:port
+        const match = book.coverUrl.match(/localhost:\d+(\/uploads\/.+)$/i)
+        if (match && match[1]) {
+          book.coverUrl = backendOrigin + match[1]
+          changed = true
+        }
+      }
+      
+      // Fix fileUrl
+      if (book.fileUrl && /localhost/i.test(book.fileUrl)) {
+        const match = book.fileUrl.match(/localhost:\d+(\/uploads\/.+)$/i)
+        if (match && match[1]) {
+          book.fileUrl = backendOrigin + match[1]
+          changed = true
+        }
+      }
+      
+      if (changed) {
+        await book.save()
+        fixed++
+      }
+    }
+
+    return res.json({
+      message: `Fixed ${fixed} book(s) with localhost URLs`,
+      fixed,
+      backendOrigin
+    })
+  } catch (err) {
+    console.error('Failed to fix book URLs', err)
+    return res.status(500).json({ message: 'Server error', error: err.message })
+  }
+})
+
+// GET /api/admin/books/check-urls
+// Diagnostic endpoint to list books with potentially broken URLs
+router.get('/books/check-urls', async (req, res) => {
+  try {
+    const books = await Book.find({}).select('title coverUrl fileUrl').lean()
+    const issues = books.filter(b => {
+      const hasBadCover = b.coverUrl && (/localhost/i.test(b.coverUrl) || !b.coverUrl.startsWith('http'))
+      const hasBadFile = b.fileUrl && (/localhost/i.test(b.fileUrl) || !b.fileUrl.startsWith('http'))
+      return hasBadCover || hasBadFile
+    })
+    return res.json({
+      total: books.length,
+      issueCount: issues.length,
+      issues: issues.map(b => ({ id: b._id, title: b.title, coverUrl: b.coverUrl, fileUrl: b.fileUrl })),
+      backendOrigin: getBackendOrigin(req)
+    })
+  } catch (err) {
+    console.error('Failed to check book URLs', err)
+    return res.status(500).json({ message: 'Server error', error: err.message })
+  }
+})
+
 module.exports = router;
 
 

@@ -23,7 +23,6 @@ import DashboardHome from './Pages/DashboardHome'
 import DashboardOverview from './Pages/DashboardOverview'
 import DashboardLibrary from './Pages/DashboardLibrary'
 import BookPage from './Pages/BookPage'
-import DashboardBorrowed from './Pages/DashboardBorrowed'
 import DashboardSettings from './Pages/DashboardSettings'
 import DashboardAnalytics from './Pages/DashboardAnalytics'
 import DashboardSupport from './Pages/DashboardSupport'
@@ -58,7 +57,6 @@ function App() {
       <Route path="/dashboard" element={<RequireAuth><DashboardLayout /></RequireAuth>}>
         <Route index element={<DashboardOverview />} />
         <Route path="library" element={<DashboardLibrary />} />
-        <Route path="borrowed" element={<DashboardBorrowed />} />
         <Route path="settings" element={<DashboardSettings />} />
         <Route path="support" element={<DashboardSupport />} />
         <Route path="analytics" element={<DashboardAnalytics />} />

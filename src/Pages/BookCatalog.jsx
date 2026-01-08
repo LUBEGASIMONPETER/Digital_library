@@ -74,8 +74,7 @@ const BookCatalog = () => {
         description: b.description || '',
         coverUrl: b.coverUrl || b.cover || '',
         fileUrl: b.fileUrl || '',
-        addedDate: b.addedDate || b.createdAt || '',
-        borrowCount: b.borrowCount || 0
+        addedDate: b.addedDate || b.createdAt || ''
       }))
       setBooks(mapped)
       setFilteredBooks(mapped)
@@ -177,9 +176,6 @@ const BookCatalog = () => {
   const maintenanceNow = books.filter(b => b.status === 'maintenance').length
   const maintenancePrev = books.filter(b => isOld(b) && b.status === 'maintenance').length
 
-  const borrowedNow = books.reduce((sum, book) => sum + (book.totalCopies - book.availableCopies), 0)
-  const borrowedPrev = books.filter(isOld).reduce((sum, book) => sum + (book.totalCopies - book.availableCopies), 0)
-
   const calcPercent = (prev, curr) => {
     // If no previous data, but current > 0, show 100% growth; if both zero, show 0%
     if (prev === 0) {
@@ -195,7 +191,6 @@ const BookCatalog = () => {
 
   const totalChange = calcPercent(totalBooks - addedLast30, totalBooks)
   const availableChange = calcPercent(availablePrev, availableNow)
-  const borrowedChange = calcPercent(borrowedPrev, borrowedNow)
   const maintenanceChange = calcPercent(maintenancePrev, maintenanceNow)
 
   // Select all books on current page
@@ -466,18 +461,6 @@ const BookCatalog = () => {
           color="green"
         />
         <StatCard
-          title="Currently Borrowed"
-          value={borrowedNow}
-          change={borrowedChange.text}
-          trend={borrowedChange.trend}
-          icon={
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-              <path d="M18 2H8a2 2 0 00-2 2v14a2 2 0 002 2h10v-2H8V4h10v6h2V4a2 2 0 00-2-2zM6 8H4v12a2 2 0 002 2h12v-2H6V8z" />
-            </svg>
-          }
-          color="blue"
-        />
-        <StatCard
           title="Needs Maintenance"
           value={maintenanceNow}
           change={maintenanceChange.text}
@@ -735,15 +718,12 @@ const BookCard = ({ book, selected, onSelect, onDelete, onStatusChange, onEdit }
             </span>
           </div>
 
-          {/* Borrow Count */}
-          <div className="mt-2 text-xs text-gray-500">
-            Borrowed {book.borrowCount} times
-            {book.fileUrl && (
-              <div className="mt-2">
-                <a href={book.fileUrl} download className="text-indigo-600 text-sm hover:underline">Download PDF</a>
-              </div>
-            )}
-          </div>
+          {/* Download Link */}
+          {book.fileUrl && (
+            <div className="mt-2">
+              <a href={book.fileUrl} download className="text-indigo-600 text-sm hover:underline">Download PDF</a>
+            </div>
+          )}
         </div>
       </div>
     </div>

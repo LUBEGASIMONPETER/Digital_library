@@ -96,18 +96,6 @@ const Sidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse = () 
             collapsed={collapsed} 
             isActive={location.pathname.includes('/library')}
           />
-          <SidebarLink 
-            to="/dashboard/borrowed" 
-            label="Borrowed Books" 
-            icon={
-              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle cx="12" cy="12" r="8" strokeWidth="1.5" />
-                <path d="M12 8v5l3 2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            } 
-            collapsed={collapsed} 
-            isActive={location.pathname.includes('/borrowed')}
-          />
           {/* <SidebarLink 
             to="/dashboard/reading-lists" 
             label="Reading Lists" 

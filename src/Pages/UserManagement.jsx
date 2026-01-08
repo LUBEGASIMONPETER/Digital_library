@@ -52,7 +52,6 @@ const UserManagement = () => {
           status: u.status || 'inactive',
           joinDate: u.joinDate || new Date().toISOString(),
           lastLogin: u.lastLogin || null,
-          booksBorrowed: u.booksBorrowed || 0,
           avatar: u.avatar || ''
         }))
 
@@ -252,14 +251,13 @@ const UserManagement = () => {
       ? users.filter(user => selectedUsers.includes(user.id))
       : filteredUsers
 
-    const fields = ['Name', 'Email', 'Role', 'Status', 'Join Date', 'Books Borrowed']
+    const fields = ['Name', 'Email', 'Role', 'Status', 'Join Date']
     const rows = dataToExport.map(u => ([
       u.name,
       u.email,
       u.role,
       u.status,
-      u.joinDate ? new Date(u.joinDate).toLocaleString() : '',
-      u.booksBorrowed || 0
+      u.joinDate ? new Date(u.joinDate).toLocaleString() : ''
     ]))
 
     setExporting(true)
@@ -563,7 +561,6 @@ const UserManagement = () => {
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Role</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Join Date</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Books</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
               </tr>
             </thead>
@@ -709,12 +706,6 @@ const UserRow = ({ user, selected, onSelect, onDelete, onChangeStatus, onChangeR
       
       <td className="px-6 py-4 text-sm text-gray-900">
         {new Date(user.joinDate).toLocaleDateString()}
-      </td>
-      
-      <td className="px-6 py-4">
-        <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-          {user.booksBorrowed} books
-        </span>
       </td>
       
       <td className="px-6 py-4">

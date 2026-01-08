@@ -3,18 +3,18 @@ import React, { useState } from 'react'
 const SAMPLE_FAQ = [
   {
     id: 1,
-    q: 'How do I borrow a book?',
-    a: 'Visit the Library page, find the book you want and click the "Borrow Now" button. Follow on-screen instructions.'
+    q: 'How do I download a book?',
+    a: 'Visit the Library page, find the book you want and click the "Download" button. The book will be saved to your device.'
   },
   {
     id: 2,
-    q: 'Can I renew a borrowed book?',
-    a: 'Yes — if the book is not overdue and the renewal limit has not been reached. Use the Renew button on My Borrowed Books.'
+    q: 'How do I read a book online?',
+    a: 'Click the "Read Now" button on any book card to open the book in your browser. No download required.'
   },
   {
     id: 3,
-    q: 'How do I request an extension?',
-    a: 'Open the Borrowed Books page and click "Request Extension" under Quick Actions or on the specific loan.'
+    q: 'What file formats are supported?',
+    a: 'Currently, we support PDF format for all books in the library.'
   }
 ]
 
@@ -103,7 +103,6 @@ const DashboardSupport = () => {
               <h4 className="text-sm font-semibold text-gray-900 mb-2">Resources</h4>
               <ul className="text-sm text-blue-600 space-y-2">
                 <li><a href="#">User Guide</a></li>
-                <li><a href="#">Borrowing Policy</a></li>
                 <li><a href="#">Contact Phone: +256 700 000000</a></li>
               </ul>
             </div>
