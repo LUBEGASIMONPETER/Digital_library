@@ -1,4 +1,3 @@
-// AdminLayout.jsx
 import React, { useState, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import AdminSidebar from '../../Components/Admin/AdminSidebar'
@@ -9,7 +8,7 @@ const AdminLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
 
-  const mainMarginClass = collapsed ? 'md:ml-20' : 'md:ml-80'
+  const mainMarginClass = collapsed ? 'md:ml-20' : 'md:ml-72'
 
   // Close mobile sidebar when route changes
   useEffect(() => {
@@ -29,7 +28,7 @@ const AdminLayout = () => {
   }, [mobileOpen])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50/30">
+    <div className="min-h-screen bg-gray-50">
       <AdminSidebar 
         collapsed={collapsed} 
         mobileOpen={mobileOpen} 
@@ -38,10 +37,10 @@ const AdminLayout = () => {
       />
 
       <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${mainMarginClass}`}>
-        <AdminNav onToggleSidebar={() => setMobileOpen(s => !s)} />
+        <AdminNav collapsed={collapsed} onToggleSidebar={() => setMobileOpen(s => !s)} />
 
-        <main className="pt-20 p-6 md:p-8">
-          <div className="max-w-7xl mt-16 mx-auto">
+        <main className="pt-20 p-4 md:p-6">
+          <div className="max-w-7xl mx-auto mt-[80px]">
             <Outlet />
           </div>
         </main>
@@ -50,4 +49,4 @@ const AdminLayout = () => {
   )
 }
 
-export default AdminLayout;
+export default AdminLayout

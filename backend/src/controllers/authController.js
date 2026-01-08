@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const debug = require('../config/debugStore');
 const { sendVerificationEmail } = require('../config/mailer');
+const { checkAndUnlockAchievements } = require('../services/achievementService');
 
 exports.register = async (req, res) => {
   // Accept either `fullName` (older client) or `name` (newer client) to be flexible.
@@ -44,6 +45,13 @@ exports.register = async (req, res) => {
   user.verificationCodeExpires = Date.now() + 1000 * 60 * 60 * 24; // 24h
 
     await user.save();
+
+  // Unlock "The Initiate" achievement for creating an account
+  try {
+    await checkAndUnlockAchievements(user._id, 'signup');
+  } catch (achErr) {
+    console.error('Achievement check failed:', achErr);
+  }
 
   console.log('Registered user:', email, 'verificationCode:', user.verificationCode, 'expires:', new Date(user.verificationCodeExpires).toISOString())
 

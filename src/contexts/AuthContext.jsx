@@ -2,21 +2,82 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 
 const AuthContext = createContext(null)
 
+// Helper to extract token from URL
+const getTokenFromUrl = () => {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('token')
+}
+
+// Helper to decode JWT payload
+const decodeJwt = (token) => {
+  try {
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    return JSON.parse(jsonPayload)
+  } catch (err) {
+    console.error('Failed to decode JWT:', err)
+    return null
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('auth_user')
-      if (raw) {
-        setUser(JSON.parse(raw))
+    const initAuth = async () => {
+      try {
+        // Check for OAuth token in URL first
+        const urlToken = getTokenFromUrl()
+        
+        if (urlToken) {
+          // Decode the token to get user info
+          const decoded = decodeJwt(urlToken)
+          
+          if (decoded && decoded.id) {
+            // Fetch full user profile from backend
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+            const res = await fetch(`${apiUrl}/api/users/profile`, {
+              headers: {
+                'Authorization': `Bearer ${urlToken}`,
+                'X-User-ID': decoded.id
+              }
+            })
+            
+            if (res.ok) {
+              const userData = await res.json()
+              const userWithId = { ...userData, id: userData._id || userData.id || decoded.id, token: urlToken }
+              setUser(userWithId)
+            } else {
+              // Token might be expired or invalid
+              console.error('Failed to fetch user profile with OAuth token')
+            }
+          }
+          
+          // Clean the URL (remove token parameter)
+          const cleanUrl = window.location.pathname
+          window.history.replaceState({}, document.title, cleanUrl)
+        } else {
+          // No URL token, check localStorage
+          const raw = localStorage.getItem('auth_user')
+          if (raw) {
+            setUser(JSON.parse(raw))
+          }
+        }
+      } catch (err) {
+        console.error('Failed to initialize auth', err)
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      console.error('Failed to read auth_user from localStorage', err)
-    } finally {
-      setLoading(false)
     }
+    
+    initAuth()
   }, [])
 
   useEffect(() => {

@@ -1,7 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 const connectDB = require('./config/db');
+const passport = require('./config/passport');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 
@@ -79,7 +81,7 @@ async function start() {
     }
 
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Origin')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Origin,X-User-ID')
     res.setHeader('Access-Control-Allow-Credentials', 'true')
 
     // Let preflight requests short-circuit
@@ -88,6 +90,21 @@ async function start() {
   })
 
   app.use(express.json());
+
+  // Session for passport
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-session-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+
+  // Initialize passport
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   // serve uploaded files when Cloudinary is not configured (dev fallback)
   const uploadsPath = path.join(__dirname, '..', 'uploads')

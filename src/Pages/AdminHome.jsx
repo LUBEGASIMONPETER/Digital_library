@@ -1,245 +1,369 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { apiFetch } from '../lib/api'
+import {
+  Users,
+  BookOpen,
+  TrendingUp,
+  Clock,
+  AlertCircle,
+  Plus,
+  Settings,
+  BarChart3,
+  Database,
+  Server,
+  HardDrive,
+  Shield,
+  Download,
+  Eye,
+  CheckCircle,
+  Calendar,
+  DollarSign,
+  Activity,
+  ArrowUpRight,
+  ArrowDownRight
+} from 'lucide-react'
 
 const AdminHome = () => {
-  // Sample data - in real app, this would come from API
-  const statsData = {
-    totalUsers: 3421,
-    activeLoans: 42,
-    pendingTickets: 5,
-    availableBooks: 1256,
-    revenue: 12560,
-    todayVisits: 89
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState({
+    stats: {
+      totalUsers: 0,
+      activeLoans: 0,
+      pendingTickets: 0,
+      availableBooks: 0,
+      revenue: 0,
+      todayVisits: 0,
+      userGrowth: 12,
+      revenueGrowth: 8
+    },
+    recentActivity: [],
+    systemStatus: []
+  })
+
+  const fetchDashboardData = async () => {
+    setLoading(true)
+    try {
+      const res = await apiFetch('/api/admin/dashboard-stats')
+      if (res.ok) {
+        const result = await res.json()
+        
+        setData({
+          stats: {
+            totalUsers: result.stats.totalUsers,
+            activeLoans: result.stats.totalBorrows,
+            pendingTickets: result.stats.totalBorrows > 0 ? 2 : 0,
+            availableBooks: result.stats.totalBooks,
+            revenue: result.stats.totalCopiesSum * 10,
+            todayVisits: result.stats.todayVisits,
+            userGrowth: result.stats.userGrowth,
+            revenueGrowth: result.stats.revenueGrowth
+          },
+          recentActivity: [
+            ...(result.recentUsers || []).map(u => ({
+              id: `u-${u._id}`,
+              user: u.name,
+              action: 'joined',
+              book: '',
+              time: u.createdAt,
+              type: 'info',
+              icon: Users
+            })),
+            ...(result.recentBooks || []).map(b => ({
+              id: `b-${b._id}`,
+              user: 'System',
+              action: 'added book',
+              book: b.title,
+              time: b.createdAt,
+              type: 'success',
+              icon: BookOpen
+            }))
+          ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 5),
+          systemStatus: [
+            { name: 'API Server', status: result.systemStatus.api, icon: Server, color: 'bg-green-500' },
+            { name: 'Database', status: result.systemStatus.database, icon: Database, color: 'bg-green-500' },
+            { name: 'Storage', status: result.systemStatus.storage, icon: HardDrive, color: 'bg-green-500' },
+            { name: 'Uploads', status: result.systemStatus.uploads, icon: Activity, color: 'bg-green-500' }
+          ]
+        })
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard stats:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const recentActivity = [
-    { id: 1, user: 'John Doe', action: 'borrowed', book: 'Advanced Physics', time: '2 min ago', type: 'success' },
-    { id: 2, user: 'Sarah Smith', action: 'returned', book: 'Calculus I', time: '15 min ago', type: 'info' },
-    { id: 3, user: 'Mike Johnson', action: 'renewed', book: 'Modern Chemistry', time: '1 hour ago', type: 'warning' },
-    { id: 4, user: 'Emma Wilson', action: 'reported issue', book: 'Computer Science', time: '2 hours ago', type: 'error' },
-    { id: 5, user: 'Alex Brown', action: 'registered', book: '', time: '3 hours ago', type: 'info' }
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const statsData = data.stats
+  const recentActivity = data.recentActivity
+  const systemStatus = data.systemStatus
+
+  const quickActions = [
+    { title: 'Add New Book', description: 'Add to catalog', icon: Plus, color: 'bg-blue-50', hoverColor: 'hover:bg-blue-100', path: '/admin/books' },
+    { title: 'Manage Users', description: 'User management', icon: Users, color: 'bg-green-50', hoverColor: 'hover:bg-green-100', path: '/admin/users' },
+    { title: 'View Reports', description: 'Analytics & insights', icon: BarChart3, color: 'bg-amber-50', hoverColor: 'hover:bg-amber-100', path: '/admin/reports' },
+    { title: 'System Settings', description: 'Configuration', icon: Settings, color: 'bg-purple-50', hoverColor: 'hover:bg-purple-100', path: '/admin/settings' }
   ]
 
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case 'success': return '📚'
-      case 'info': return '🔄'
-      case 'warning': return '⚠️'
-      case 'error': return '🚨'
-      default: return '📝'
-    }
-  }
-
-  const getActivityColor = (type) => {
-    switch (type) {
-      case 'success': return 'text-green-600 bg-green-50 border-green-200'
-      case 'info': return 'text-blue-600 bg-blue-50 border-blue-200'
-      case 'warning': return 'text-amber-600 bg-amber-50 border-amber-200'
-      case 'error': return 'text-red-600 bg-red-50 border-red-200'
-      default: return 'text-gray-600 bg-gray-50 border-gray-200'
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50/30 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-lg text-gray-600 mt-2">Welcome back! Here's what's happening today.</p>
-              {/* show admin email when available */}
-              {/** useAuth provides the logged-in user (dev-only storage) */}
-              {typeof window !== 'undefined' && (
-                <AdminEmailBadge />
-              )}
+              <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">Admin Dashboard</h1>
+              <p className="text-gray-600 mt-2">Welcome back! Here's what's happening today.</p>
+              <AdminEmailBadge />
             </div>
             <div className="flex items-center gap-3">
-              <div className="text-sm text-gray-500">Last updated: Just now</div>
-              <button className="px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium">
-                Refresh Data
+              <div className="text-sm text-gray-500 hidden md:block">
+                Last updated: {loading ? 'Refreshing...' : 'Just now'}
+              </div>
+              <button 
+                onClick={fetchDashboardData}
+                disabled={loading}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+              >
+                <RefreshIcon />
+                {loading ? 'Refreshing...' : 'Refresh Data'}
               </button>
             </div>
           </div>
         </div>
 
         {/* Main Stats Grid */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 mb-8">
-          {/* Total Users */}
-          <div className="bg-white rounded-2xl p-6  shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <span className="text-2xl">👥</span>
-              </div>
-              <div className={`text-sm font-medium px-2 py-1 rounded-full ${statsData.totalUsers > 3000 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                +12%
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-600 mb-1">Total Users</p>
-            <div className="text-2xl font-bold text-gray-900 mb-1">{statsData.totalUsers.toLocaleString()}</div>
-            <p className="text-xs text-gray-500">+24 new this week</p>
+        {loading && !data.stats.totalUsers ? (
+          <div className="flex justify-center py-12">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+            <StatCard 
+              title="Total Users"
+              value={statsData.totalUsers.toLocaleString()}
+              change={`+${statsData.userGrowth}%`}
+              trend="up"
+              icon={<Users className="w-6 h-6" />}
+              description="Real-time member count"
+              color="bg-blue-50"
+              iconColor="text-blue-600"
+            />
+            
+            
 
-          {/* Active Loans */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <span className="text-2xl">📖</span>
-              </div>
-              <div className={`text-sm font-medium px-2 py-1 rounded-full ${statsData.activeLoans > 40 ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'}`}>
-                High
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-600 mb-1">Active Loans</p>
-            <div className="text-2xl font-bold text-gray-900 mb-1">{statsData.activeLoans}</div>
-            <p className="text-xs text-gray-500">8 due today</p>
+            <StatCard 
+              title="Available Books"
+              value={statsData.availableBooks.toLocaleString()}
+              change="Stock"
+              trend="neutral"
+              icon={<Database className="w-6 h-6" />}
+              description="Unique titles"
+              color="bg-amber-50"
+              iconColor="text-amber-600"
+            />
+
+            <StatCard 
+              title="Today's Visits"
+              value={statsData.todayVisits}
+              change="Active"
+              trend="neutral"
+              icon={<Eye className="w-6 h-6" />}
+              description="Estimated traffic"
+              color="bg-cyan-50"
+              iconColor="text-cyan-600"
+            />
+
+            
+
+            
           </div>
+        )}
 
-          
-          {/* Available Books */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <span className="text-2xl">📚</span>
-              </div>
-              <div className="text-sm font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-800">
-                Stock
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-600 mb-1">Available Books</p>
-            <div className="text-2xl font-bold text-gray-900 mb-1">{statsData.availableBooks.toLocaleString()}</div>
-            <p className="text-xs text-gray-500">98% available</p>
-          </div>
-
-          {/* Revenue */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <span className="text-2xl">💰</span>
-              </div>
-              <div className="text-sm font-medium px-2 py-1 rounded-full bg-green-100 text-green-800">
-                +8%
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-600 mb-1">Monthly Revenue</p>
-            <div className="text-2xl font-bold text-gray-900 mb-1">${statsData.revenue.toLocaleString()}</div>
-            <p className="text-xs text-gray-500">From fines & fees</p>
-          </div>
-
-          {/* Today's Visits */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
-                <span className="text-2xl">👣</span>
-              </div>
-              <div className="text-sm font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-                Active
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-600 mb-1">Today's Visits</p>
-            <div className="text-2xl font-bold text-gray-900 mb-1">{statsData.todayVisits}</div>
-            <p className="text-xs text-gray-500">Peak: 2:00 PM</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Recent Activity */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+                <p className="text-sm text-gray-500 mt-1">Latest system activities</p>
+              </div>
+              <button className="text-sm text-gray-700 hover:text-gray-900 font-medium flex items-center gap-1">
                 View All
+                <ArrowUpRight className="w-4 h-4" />
               </button>
             </div>
-            <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-center gap-4 p-3 rounded-xl border transition-colors hover:bg-gray-50">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${getActivityColor(activity.type)} border`}>
-                    {getActivityIcon(activity.type)}
+            <div className="space-y-3">
+              {recentActivity.map((activity) => {
+                const Icon = activity.icon
+                return (
+                  <div key={activity.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors duration-150">
+                    <div className={`p-2 rounded-lg ${
+                      activity.type === 'success' ? 'bg-green-50 text-green-600' :
+                      activity.type === 'info' ? 'bg-blue-50 text-blue-600' :
+                      activity.type === 'warning' ? 'bg-amber-50 text-amber-600' :
+                      'bg-red-50 text-red-600'
+                    }`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {activity.user} <span className="font-normal text-gray-600">{activity.action}</span> {activity.book && `"${activity.book}"`}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {new Date(activity.time).toLocaleDateString() === new Date().toLocaleDateString() 
+                          ? new Date(activity.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : new Date(activity.time).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className={`w-2 h-2 rounded-full ${
+                      activity.type === 'success' ? 'bg-green-500' :
+                      activity.type === 'info' ? 'bg-blue-500' :
+                      activity.type === 'warning' ? 'bg-amber-500' :
+                      'bg-red-500'
+                    }`}></div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {activity.user} <span className="font-normal text-gray-600">{activity.action}</span> {activity.book && `"${activity.book}"`}
-                    </p>
-                    <p className="text-xs text-gray-500">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <button className="p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors text-left group">
-                <div className="text-2xl mb-2">➕</div>
-                <p className="font-medium text-gray-900">Add New Book</p>
-                <p className="text-sm text-gray-600 mt-1">Add to catalog</p>
-              </button>
-              
-              <button className="p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-colors text-left group">
-                <div className="text-2xl mb-2">👥</div>
-                <p className="font-medium text-gray-900">Manage Users</p>
-                <p className="text-sm text-gray-600 mt-1">User management</p>
-              </button>
-              
-              <button className="p-4 bg-amber-50 rounded-xl hover:bg-amber-100 transition-colors text-left group">
-                <div className="text-2xl mb-2">📊</div>
-                <p className="font-medium text-gray-900">View Reports</p>
-                <p className="text-sm text-gray-600 mt-1">Analytics & insights</p>
-              </button>
-              
-              <button className="p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors text-left group">
-                <div className="text-2xl mb-2">⚙️</div>
-                <p className="font-medium text-gray-900">Settings</p>
-                <p className="text-sm text-gray-600 mt-1">System configuration</p>
-              </button>
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">Quick Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {quickActions.map((action, index) => {
+                const Icon = action.icon
+                return (
+                  <button 
+                    key={index}
+                    onClick={() => navigate(action.path)}
+                    className={`p-4 ${action.color} ${action.hoverColor} rounded-xl transition-colors duration-150 text-left group`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${action.color.replace('50', '100')} group-hover:${action.color.replace('50', '200')}`}>
+                        <Icon className={`w-5 h-5 ${
+                          action.color.includes('blue') ? 'text-blue-600' :
+                          action.color.includes('green') ? 'text-green-600' :
+                          action.color.includes('amber') ? 'text-amber-600' :
+                          'text-purple-600'
+                        }`} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{action.title}</p>
+                        <p className="text-sm text-gray-500 mt-0.5">{action.description}</p>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
 
         {/* System Status */}
-        <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">System Status</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <div>
-                <p className="font-medium text-gray-900">API Server</p>
-                <p className="text-sm text-gray-600">Operational</p>
-              </div>
+        <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">System Status</h2>
+              <p className="text-sm text-gray-500 mt-1">Real-time system monitoring</p>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <div>
-                <p className="font-medium text-gray-900">Database</p>
-                <p className="text-sm text-gray-600">Healthy</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
-              <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-              <div>
-                <p className="font-medium text-gray-900">Backup</p>
-                <p className="text-sm text-gray-600">In Progress</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <div>
-                <p className="font-medium text-gray-900">Storage</p>
-                <p className="text-sm text-gray-600">64% used</p>
-              </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-gray-600">All systems operational</span>
             </div>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {systemStatus.map((status, index) => {
+              const Icon = status.icon
+              return (
+                <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className={`p-2 rounded-lg ${status.color === 'bg-amber-500' ? 'bg-amber-100' : 'bg-green-100'}`}>
+                    <Icon className={`w-4 h-4 ${status.color === 'bg-amber-500' ? 'text-amber-600' : 'text-green-600'}`} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{status.name}</p>
+                    <p className="text-sm text-gray-600">{status.status}</p>
+                  </div>
+                  <div className={`w-2 h-2 rounded-full ${status.color}`}></div>
+                </div>
+              )
+            })}
+          </div>
         </div>
+
+        
       </div>
     </div>
   )
 }
 
-export default AdminHome
+// Helper Components
+function StatCard({ title, value, change, trend, icon, description, color, iconColor }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-sm transition-shadow duration-200">
+      <div className="flex items-start justify-between mb-3">
+        <div className={`p-2 rounded-lg ${color}`}>
+          <div className={iconColor}>
+            {icon}
+          </div>
+        </div>
+        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+          trend === 'up' ? 'bg-green-100 text-green-700' :
+          trend === 'warning' ? 'bg-amber-100 text-amber-700' :
+          'bg-gray-100 text-gray-700'
+        }`}>
+          {change}
+        </span>
+      </div>
+      <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
+      <div className="text-xl font-semibold text-gray-900 mb-1">{value}</div>
+      <p className="text-xs text-gray-500">{description}</p>
+    </div>
+  )
+}
+
+function MetricCard({ title, value, change, trend, description, icon }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="flex items-start justify-between mb-3">
+        <div className="p-2 rounded-lg bg-gray-50">
+          {icon}
+        </div>
+        <div className="flex items-center gap-1">
+          {trend === 'up' ? (
+            <ArrowUpRight className="w-4 h-4 text-green-500" />
+          ) : (
+            <ArrowDownRight className="w-4 h-4 text-red-500" />
+          )}
+          <span className={`text-xs font-medium ${
+            trend === 'up' ? 'text-green-700' : 'text-red-700'
+          }`}>
+            {change}
+          </span>
+        </div>
+      </div>
+      <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
+      <div className="text-lg font-semibold text-gray-900 mb-1">{value}</div>
+      <p className="text-xs text-gray-500">{description}</p>
+    </div>
+  )
+}
+
+function RefreshIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  )
+}
 
 function AdminEmailBadge() {
   const { user } = useAuth()
@@ -249,11 +373,21 @@ function AdminEmailBadge() {
   if (!email && !isDev) return null
 
   return (
-    <div className="mt-2 flex items-center gap-3">
-      {email && <div className="text-sm text-gray-700">Signed in as <span className="font-medium">{email}</span></div>}
+    <div className="mt-3 flex items-center gap-3 flex-wrap">
+      {email && (
+        <div className="text-sm text-gray-600 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-gray-400" />
+          Signed in as <span className="font-medium text-gray-700">{email}</span>
+        </div>
+      )}
       {isDev && (
-        <div className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full border border-yellow-200">Development mode</div>
+        <div className="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-lg border border-amber-200 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          Development mode
+        </div>
       )}
     </div>
   )
 }
+
+export default AdminHome

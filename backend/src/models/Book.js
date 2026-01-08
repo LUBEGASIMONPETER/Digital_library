@@ -15,6 +15,9 @@ const BookSchema = new mongoose.Schema({
   addedDate: { type: Date, default: Date.now },
   borrowCount: { type: Number, default: 0 },
   status: { type: String, default: 'available' },
+  resourceType: { type: String, enum: ['textbook', 'past_paper', 'reference', 'handbook', 'study_guide'], default: 'textbook' },
+  examYear: { type: String },
+  examBoard: { type: String, default: 'UNEB' }
 }, { timestamps: true })
 
 module.exports = mongoose.model('Book', BookSchema)

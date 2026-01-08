@@ -1,31 +1,55 @@
-import React from "react";
-import hero_bg from "../../public/Hero_bg.jpg";
+import React, { useState, useEffect } from "react";
+// Use the public URL directly for massive images to avoid Vite module processing overhead
+const hero_bg = "/Hero_bg.jpg"; 
+
+import { Link } from "react-router-dom";
+import BookLibrary from "./BookLibrary";
 
 const Home = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  if (isMobile) {
+    return (
+      <div className="pt-24">
+        <BookLibrary />
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Hero Section */}
       <section
         id="home"
-        className="pt-32 pb-20 bg-gradient-to-r from-blue-500 to-blue-700 text-white"
+        className="pt-32 pb-20 bg-white text-slate-900 border-b border-slate-200"
       >
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900">
               Unlock a World of Knowledge, Anywhere, Anytime
             </h1>
-            <p className="text-xl mb-8">
+            <p className="text-xl mb-8 text-slate-600">
               Access a variety of eBooks, research papers, and academic
               resources with our digital library platform. Learn, explore, and
               grow—at your own pace.
             </p>
             <div className="flex space-x-4">
-              <button className="bg-white text-blue-600 hover:bg-gray-100 px-6 py-3 rounded-md font-semibold">
+              <Link to="/library" className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-lg font-medium transition-colors">
                 Browse Library
-              </button>
+              </Link>
               <a
                 href="/auth/signup"
-                className="bg-transparent border-2 border-white hover:bg-blue-600 px-6 py-3 rounded-md font-semibold"
+                className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-lg font-medium transition-colors"
               >
                 Join for Free
               </a>
@@ -33,7 +57,7 @@ const Home = () => {
           </div>
           <div className="md:w-1/2">
             <img
-              className="rounded-xl shadow-lg"
+              className="rounded-lg shadow-lg"
               src={hero_bg}
               alt="Digital Library Access"
             />
@@ -44,15 +68,15 @@ const Home = () => {
       {/* Premium Features Section */}
       <section
         id="about"
-        className="py-20 bg-gradient-to-b from-white to-blue-50/30"
+        className="py-20 bg-white"
       >
         <div className="container mx-auto px-4 max-w-6xl">
           {/* Section Header */}
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
               Empowering A-Level Success
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
               Designed specifically for Kawempe A-Level students, our digital
               library provides everything you need to excel in your studies
             </p>
@@ -61,11 +85,11 @@ const Home = () => {
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Feature 1 - Digital Collection */}
-            <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-blue-100 hover:border-blue-200 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 w-20 h-20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+            <div className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-8 border border-slate-100 hover:border-blue-200 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
+              <div className="bg-blue-100 w-16 h-16 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg
-                  className="w-10 h-10 text-white"
+                  className="w-8 h-8 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -78,18 +102,18 @@ const Home = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
+              <h3 className="text-xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
                 Comprehensive A-Level Resources
               </h3>
-              <p className="text-gray-600 leading-relaxed mb-4">
+              <p className="text-slate-600 leading-relaxed mb-4">
                 Access thousands of curated past papers, textbooks, and study
                 guides specifically tailored for Uganda A-Level curriculum
                 across all subjects.
               </p>
-              <ul className="space-y-2 text-sm text-gray-500">
+              <ul className="space-y-2 text-sm text-slate-500">
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -103,7 +127,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -117,7 +141,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -133,11 +157,11 @@ const Home = () => {
             </div>
 
             {/* Feature 2 - Smart Search */}
-            <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-purple-100 hover:border-purple-200 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-600"></div>
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 w-20 h-20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+            <div className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-8 border border-slate-100 hover:border-blue-200 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
+              <div className="bg-blue-100 w-16 h-16 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg
-                  className="w-10 h-10 text-white"
+                  className="w-8 h-8 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -150,18 +174,18 @@ const Home = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-purple-600 transition-colors duration-300">
+              <h3 className="text-xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
                 Intelligent Search & Discovery
               </h3>
-              <p className="text-gray-600 leading-relaxed mb-4">
+              <p className="text-slate-600 leading-relaxed mb-4">
                 Find exactly what you need with our AI-powered search that
                 understands A-Level topics and suggests relevant materials
                 instantly.
               </p>
-              <ul className="space-y-2 text-sm text-gray-500">
+              <ul className="space-y-2 text-sm text-slate-500">
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -175,7 +199,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -189,7 +213,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -205,11 +229,11 @@ const Home = () => {
             </div>
 
             {/* Feature 3 - Personalized */}
-            <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-green-100 hover:border-green-200 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-teal-600"></div>
-              <div className="bg-gradient-to-br from-green-500 to-green-600 w-20 h-20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+            <div className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-8 border border-slate-100 hover:border-blue-200 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
+              <div className="bg-blue-100 w-16 h-16 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg
-                  className="w-10 h-10 text-white"
+                  className="w-8 h-8 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -222,18 +246,18 @@ const Home = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-green-600 transition-colors duration-300">
+              <h3 className="text-xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
                 Personalized Learning Journey
               </h3>
-              <p className="text-gray-600 leading-relaxed mb-4">
+              <p className="text-slate-600 leading-relaxed mb-4">
                 Track your progress, create custom reading lists, and receive
                 tailored content recommendations based on your subjects and
                 performance.
               </p>
-              <ul className="space-y-2 text-sm text-gray-500">
+              <ul className="space-y-2 text-sm text-slate-500">
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -247,7 +271,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -261,7 +285,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -277,11 +301,11 @@ const Home = () => {
             </div>
 
             {/* Feature 4 - Offline Access */}
-            <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-orange-100 hover:border-orange-200 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-red-600"></div>
-              <div className="bg-gradient-to-br from-orange-500 to-orange-600 w-20 h-20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+            <div className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-8 border border-slate-100 hover:border-blue-200 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
+              <div className="bg-blue-100 w-16 h-16 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg
-                  className="w-10 h-10 text-white"
+                  className="w-8 h-8 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -294,18 +318,18 @@ const Home = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-orange-600 transition-colors duration-300">
+              <h3 className="text-xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
                 Offline Access & Mobile Friendly
               </h3>
-              <p className="text-gray-600 leading-relaxed mb-4">
+              <p className="text-slate-600 leading-relaxed mb-4">
                 Download materials for offline study and access everything on
                 any device, perfect for areas with limited internet connectivity
                 in Kawempe.
               </p>
-              <ul className="space-y-2 text-sm text-gray-500">
+              <ul className="space-y-2 text-sm text-slate-500">
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -319,7 +343,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -333,7 +357,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -349,11 +373,11 @@ const Home = () => {
             </div>
 
             {/* Feature 5 - Collaborative */}
-            <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-teal-100 hover:border-teal-200 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 to-cyan-600"></div>
-              <div className="bg-gradient-to-br from-teal-500 to-teal-600 w-20 h-20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+            <div className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-8 border border-slate-100 hover:border-blue-200 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
+              <div className="bg-blue-100 w-16 h-16 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg
-                  className="w-10 h-10 text-white"
+                  className="w-8 h-8 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -366,17 +390,17 @@ const Home = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-teal-600 transition-colors duration-300">
+              <h3 className="text-xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
                 Collaborative Study Tools
               </h3>
-              <p className="text-gray-600 leading-relaxed mb-4">
+              <p className="text-slate-600 leading-relaxed mb-4">
                 Form study groups, share notes with classmates, and collaborate
                 on projects with built-in tools designed for A-Level students.
               </p>
-              <ul className="space-y-2 text-sm text-gray-500">
+              <ul className="space-y-2 text-sm text-slate-500">
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -390,7 +414,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -404,7 +428,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -420,11 +444,11 @@ const Home = () => {
             </div>
 
             {/* Feature 6 - Expert Support */}
-            <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 border border-indigo-100 hover:border-indigo-200 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-blue-600"></div>
-              <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 w-20 h-20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+            <div className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-8 border border-slate-100 hover:border-blue-200 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
+              <div className="bg-blue-100 w-16 h-16 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg
-                  className="w-10 h-10 text-white"
+                  className="w-8 h-8 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -437,17 +461,17 @@ const Home = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-indigo-600 transition-colors duration-300">
+              <h3 className="text-xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
                 Teacher & Mentor Support
               </h3>
-              <p className="text-gray-600 leading-relaxed mb-4">
+              <p className="text-slate-600 leading-relaxed mb-4">
                 Get guidance from qualified A-Level teachers and access curated
                 content recommendations from educational experts in Uganda.
               </p>
-              <ul className="space-y-2 text-sm text-gray-500">
+              <ul className="space-y-2 text-sm text-slate-500">
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -461,7 +485,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -475,7 +499,7 @@ const Home = () => {
                 </li>
                 <li className="flex items-center">
                   <svg
-                    className="w-4 h-4 text-green-500 mr-2"
+                    className="w-4 h-4 text-blue-600 mr-2"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -490,8 +514,6 @@ const Home = () => {
               </ul>
             </div>
           </div>
-
-          
         </div>
       </section>
       
@@ -508,13 +530,13 @@ const Home = () => {
           <div className="flex justify-center space-x-4">
             <a
               href="/auth/signup"
-              className="bg-white text-blue-600 hover:bg-gray-100 px-6 py-3 rounded-md font-semibold"
+              className="bg-white text-blue-600 hover:bg-slate-100 px-6 py-3 rounded-lg font-medium transition-colors"
             >
               Apply Now
             </a>
             <a
               href="/contact"
-              className="bg-transparent border-2 border-white hover:bg-blue-700 px-6 py-3 rounded-md font-semibold"
+              className="bg-transparent border-2 border-white hover:bg-blue-700 px-6 py-3 rounded-lg font-medium transition-colors"
             >
               Contact Us
             </a>

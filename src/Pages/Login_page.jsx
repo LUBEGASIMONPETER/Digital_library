@@ -1,15 +1,73 @@
-import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
+import { Eye, EyeOff } from 'lucide-react'
 
 const Login_page = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { setUser } = useAuth()
+
+  // Handle OAuth callback errors and success
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    const tokenParam = searchParams.get('token')
+
+    if (errorParam) {
+      if (errorParam === 'google_auth_failed') {
+        setError('Google sign-in failed. Please try again.')
+      } else {
+        setError('Authentication failed. Please try again.')
+      }
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/auth/login')
+    }
+
+    // Handle token from Google OAuth callback (if redirected here with token)
+    if (tokenParam) {
+      handleOAuthToken(tokenParam)
+    }
+  }, [searchParams])
+
+  // Handle OAuth token from URL
+  const handleOAuthToken = async (token) => {
+    setIsLoading(true)
+    try {
+      // Fetch user profile using the token
+      const res = await apiFetch('/api/users/profile', {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'X-User-ID': 'pending' // Will be resolved from token
+        }
+      })
+      
+      if (res.ok) {
+        const userData = await res.json()
+        // Store user with the token
+        const userWithToken = { ...userData, token }
+        setUser(userWithToken)
+        
+        // Clean URL and redirect
+        window.history.replaceState({}, document.title, '/dashboard')
+        navigate('/dashboard')
+      } else {
+        setError('Failed to complete Google sign-in. Please try again.')
+        window.history.replaceState({}, document.title, '/auth/login')
+      }
+    } catch (err) {
+      console.error('OAuth token handling error:', err)
+      setError('Failed to complete sign-in. Please try again.')
+      window.history.replaceState({}, document.title, '/auth/login')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -45,14 +103,11 @@ const Login_page = () => {
     }
   }
 
-  const handleGoogle = async () => {
+  const handleGoogle = () => {
     setIsLoading(true)
-    // Placeholder for Google OAuth flow
-  console.log('Simulate Google sign-in')
-  await new Promise((r) => setTimeout(r, 500))
-  // In a real flow we'd set the returned user; for now simulate a user
-  setUser({ id: 'google-user', name: 'Google User', schoolName: '' })
-  navigate('/dashboard')
+    // Redirect to backend Google OAuth endpoint
+    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    window.location.href = `${backendUrl}/api/auth/google`
   }
 
   return (
@@ -90,14 +145,24 @@ const Login_page = () => {
               Forgot password?
             </a>
           </div>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-            placeholder="Enter your password"
-            disabled={isLoading}
-          />
+          <div className="relative">
+            <input 
+              type={showPassword ? "text" : "password"} 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              placeholder="Enter your password"
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              disabled={isLoading}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
         </div>
 
         {/* Error Message */}

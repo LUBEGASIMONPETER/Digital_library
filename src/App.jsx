@@ -19,6 +19,7 @@ import RequireAdmin from './Components/RequireAdmin'
 import UserManagement from './Pages/UserManagement'
 import DeletedUsers from './Pages/DeletedUsers'
 import BookCatalog from './Pages/BookCatalog'
+import BookLibrary from './Pages/BookLibrary'
 import DashboardHome from './Pages/DashboardHome'
 import DashboardOverview from './Pages/DashboardOverview'
 import DashboardLibrary from './Pages/DashboardLibrary'
@@ -26,16 +27,25 @@ import BookPage from './Pages/BookPage'
 import DashboardSettings from './Pages/DashboardSettings'
 import DashboardAnalytics from './Pages/DashboardAnalytics'
 import DashboardSupport from './Pages/DashboardSupport'
+import DashboardFavorites from './Pages/DashboardFavorites'
+import DashboardDownloads from './Pages/DashboardDownloads'
+import DashboardAchievements from './Pages/DashboardAchievements'
+import AdminReports from './Pages/AdminReports'
+import AdminSettings from './Pages/AdminSettings'
+import Profile from './Pages/Profile'
 import NotFound from './Pages/NotFound'
+import { AchievementPopupProvider } from './Components/Notifications/AchievementPopup'
 
 function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+      <AchievementPopupProvider>
       <Routes>
       {/* Public site routes using MainLayout */}
       <Route path="/" element={<MainLayout />}>
         <Route index element={<Home />} />
+        <Route path="library" element={<BookLibrary />} />
         <Route path="contact" element={<Contact />} />
         {/* User agreement should use MainLayout */}
         <Route path="auth/agreement" element={<UserAgreement />} />
@@ -56,10 +66,14 @@ function App() {
       {/* Dashboard area (example public route for now) */}
       <Route path="/dashboard" element={<RequireAuth><DashboardLayout /></RequireAuth>}>
         <Route index element={<DashboardOverview />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="library" element={<DashboardLibrary />} />
         <Route path="settings" element={<DashboardSettings />} />
         <Route path="support" element={<DashboardSupport />} />
         <Route path="analytics" element={<DashboardAnalytics />} />
+        <Route path="favourites" element={<DashboardFavorites />} />
+        <Route path="downloads" element={<DashboardDownloads />} />
+        <Route path="achievements" element={<DashboardAchievements />} />
         {/* Book detail inside dashboard layout */}
         <Route path="books/:id" element={<BookPage />} />
       </Route>
@@ -67,14 +81,19 @@ function App() {
       {/* Admin area (protected in a real app) */}
       <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
         <Route index element={<AdminHome />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="users" element={<UserManagement />} />
   <Route path="users/deleted" element={<DeletedUsers />} />
         <Route path="users/invite" element={<div>Invite user form (TODO)</div>} />
         <Route path="books" element={<BookCatalog />} />
+        <Route path="analytics" element={<DashboardAnalytics />} />
+        <Route path="reports" element={<AdminReports />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />
     </Routes>
+      </AchievementPopupProvider>
       </ToastProvider>
     </AuthProvider>
   )

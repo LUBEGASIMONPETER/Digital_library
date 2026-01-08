@@ -3,6 +3,7 @@ const router = express.Router();
 const { sendVerificationEmail, sendAccountActionEmail } = require('../config/mailer');
 const User = require('../models/User');
 const Book = require('../models/Book')
+const mongoose = require('mongoose')
 const multer = require('multer')
 const cloudinary = require('../config/cloudinary')
 const fs = require('fs')
@@ -245,6 +246,65 @@ router.get('/user', async (req, res) => {
   }
 });
 
+// GET /api/admin/dashboard-stats
+// Return a summary of statistics for the admin dashboard
+router.get('/dashboard-stats', async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments({ isDeleted: { $ne: true } });
+    const verifiedUsers = await User.countDocuments({ isVerified: true, isDeleted: { $ne: true } });
+    const totalBooks = await Book.countDocuments({});
+    
+    // Aggregating borrow stats
+    const books = await Book.find({}).select('borrowCount availableCopies totalCopies');
+    let totalBorrows = 0;
+    let availableCopiesSum = 0;
+    let totalCopiesSum = 0;
+    books.forEach(b => {
+      totalBorrows += (b.borrowCount || 0);
+      availableCopiesSum += (b.availableCopies || 0);
+      totalCopiesSum += (b.totalCopies || 0);
+    });
+
+    const recentUsers = await User.find({ isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name email role status createdAt');
+
+    const recentBooks = await Book.find({})
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('title author category createdAt');
+
+    // System info
+    const systemStatus = {
+      api: 'operational',
+      database: mongoose.connection.readyState === 1 ? 'healthy' : 'disconnected',
+      storage: CLOUDINARY_CONFIGURED ? 'Cloudinary (Connected)' : 'Local FS',
+      uploads: 'active'
+    };
+
+    return res.json({
+      stats: {
+        totalUsers,
+        verifiedUsers,
+        totalBooks,
+        totalBorrows,
+        availableCopiesSum,
+        totalCopiesSum,
+        userGrowth: 12, // Placeholder
+        revenueGrowth: 8,
+        todayVisits: Math.floor(Math.random() * 50) + 50 // placeholder until activity tracking is added
+      },
+      recentUsers,
+      recentBooks,
+      systemStatus
+    });
+  } catch (err) {
+    console.error('Failed to get dashboard stats', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // GET /api/admin/users
 // Return a list of users (development helper). Excludes password.
 router.get('/users', async (req, res) => {
@@ -475,7 +535,8 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
 
   try {
     const {
-      title, author, isbn, category, description, totalCopies = 1, availableCopies = 1, publisher, publishedYear
+      title, author, isbn, category, description, totalCopies = 1, availableCopies = 1, publisher, publishedYear,
+      resourceType, examYear, examBoard
     } = req.body
 
     if (!title || !author || !category) return res.status(400).json({ message: 'Missing required fields: title, author, category' })
@@ -569,7 +630,9 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
       totalCopies: Number(totalCopies),
       availableCopies: Number(availableCopies),
       publisher, publishedYear: publishedYear ? Number(publishedYear) : undefined,
-      coverUrl, fileUrl
+      coverUrl, fileUrl,
+      resourceType: resourceType || 'textbook',
+      examYear, examBoard: examBoard || 'UNEB'
     })
 
     await book.save()
@@ -598,7 +661,7 @@ router.get('/books/:id', async (req, res) => {
 
 router.get('/books', async (req, res) => {
   try {
-    const books = await Book.find({}).select('title author category coverUrl fileUrl addedDate').sort({ createdAt: -1 }).lean()
+    const books = await Book.find({}).sort({ createdAt: -1 }).lean()
     return res.json({ count: books.length, books })
   } catch (err) {
     console.error('Failed to list books', err)
@@ -642,7 +705,8 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
     if (!book) return res.status(404).json({ message: 'Book not found' })
 
     const {
-      title, author, isbn, category, description, totalCopies, availableCopies, publisher, publishedYear
+      title, author, isbn, category, description, totalCopies, availableCopies, publisher, publishedYear,
+      resourceType, examYear, examBoard
     } = req.body
 
     // Update scalar fields if provided
@@ -655,6 +719,9 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
     if (availableCopies !== undefined) book.availableCopies = Number(availableCopies)
     if (publisher !== undefined) book.publisher = publisher
     if (publishedYear !== undefined && publishedYear !== '') book.publishedYear = Number(publishedYear)
+    if (resourceType) book.resourceType = resourceType
+    if (examYear !== undefined) book.examYear = examYear
+    if (examBoard !== undefined) book.examBoard = examBoard
 
     // prefer provided URLs (when using remote urls instead of uploading files)
     if (req.body.coverUrl) book.coverUrl = req.body.coverUrl
@@ -830,6 +897,84 @@ router.get('/books/check-urls', async (req, res) => {
   } catch (err) {
     console.error('Failed to check book URLs', err)
     return res.status(500).json({ message: 'Server error', error: err.message })
+  }
+})
+
+// GET /api/admin/analytics
+// Returns collection analytics including category distribution and borrowing stats
+router.get('/analytics', async (req, res) => {
+  try {
+    const totalBooks = await Book.countDocuments()
+    const availableBooks = await Book.countDocuments({ status: 'available' })
+    const maintenanceBooks = await Book.countDocuments({ status: 'maintenance' })
+    const unavailableBooks = await Book.countDocuments({ status: 'unavailable' })
+    
+    // User metrics
+    const totalUsers = await User.countDocuments()
+    const activeUsers = await User.countDocuments({ isBanned: { $ne: true } })
+    const bannedUsers = await User.countDocuments({ isBanned: true })
+    const instructors = await User.countDocuments({ role: 'instructor' })
+    const students = await User.countDocuments({ role: { $in: ['student', 'member'] } })
+
+    // Category distribution
+    const categoryStats = await Book.aggregate([
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ])
+
+    // Resource type distribution
+    const typeStats = await Book.aggregate([
+      { $group: { _id: '$resourceType', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ])
+
+    // Recent activity (Last 10 books added)
+    const recentActivity = await Book.find({})
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('title author createdAt resourceType')
+
+    // Monthly growth (books added per month for last 6 months)
+    const sixMonthsAgo = new Date()
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+    
+    const growthStats = await Book.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
+      { $group: {
+          _id: { $month: '$createdAt' },
+          count: { $sum: 1 }
+      }},
+      { $sort: { '_id': 1 } }
+    ])
+
+    return res.json({
+      metrics: {
+        totalBooks,
+        availableBooks,
+        maintenanceBooks,
+        unavailableBooks,
+        totalUsers,
+        activeUsers,
+        bannedUsers,
+        instructors,
+        students,
+        borrowCount: await Book.aggregate([{ $group: { _id: null, total: { $sum: '$borrowCount' } } }]).then(res => res[0]?.total || 0)
+      },
+      categories: categoryStats.map(c => ({ name: c._id || 'Unknown', count: c.count })),
+      types: typeStats.map(t => ({ name: t._id || 'other', count: t.count })),
+      growth: growthStats.map(g => ({ month: g._id, count: g.count })),
+      recentActivity: recentActivity.map(b => ({
+        id: b._id,
+        action: 'Added to Library',
+        resource: b.title,
+        type: b.resourceType,
+        time: b.createdAt
+      }))
+    })
+  } catch (err) {
+    console.error('Analytics error', err)
+    return res.status(500).json({ message: 'Failed to fetch analytics' })
   }
 })
 

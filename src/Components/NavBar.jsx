@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import APP_LOGO from "../../public/APP_LOGO.png";
+const APP_LOGO = "/APP_LOGO.png";
 import { Link, useLocation } from "react-router-dom";
 
 const NavBar = () => {
@@ -26,6 +26,7 @@ const NavBar = () => {
           {/* Desktop nav links (hidden on small) */}
           <nav className="hidden md:flex space-x-8">
             <Link to="/" className="text-gray-700 hover:text-blue-600">Home</Link>
+            <Link to="/library" className="text-gray-700 hover:text-blue-600">Library</Link>
             <Link to="/#about" className="text-gray-700 hover:text-blue-600">About</Link>
             <Link to="/contact" className="text-gray-700 hover:text-blue-600">Contact</Link>
           </nav>

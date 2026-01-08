@@ -10,5 +10,7 @@ router.use('/auth', require('./auth'));
 router.use('/admin', require('./admin'));
 // user profile (development helpers)
 router.use('/users', require('./users'));
+// support routes
+router.use('/support', require('./support'));
 
 module.exports = router;

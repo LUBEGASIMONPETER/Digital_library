@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
+import { Eye, EyeOff } from 'lucide-react'
 
 const initialState = {
   fullName: '',
@@ -16,9 +18,34 @@ const initialState = {
 
 const Signup_page = () => {
   const [form, setForm] = useState(initialState)
+  const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { setUser } = useAuth()
+
+  // Handle OAuth callback errors
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam) {
+      if (errorParam === 'google_auth_failed') {
+        setErrors({ submit: 'Google sign-up failed. Please try again.' })
+      } else {
+        setErrors({ submit: 'Authentication failed. Please try again.' })
+      }
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/auth/signup')
+    }
+  }, [searchParams])
+
+  // Handle Google Sign Up
+  const handleGoogleSignup = () => {
+    setSubmitting(true)
+    // Redirect to backend Google OAuth endpoint
+    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    window.location.href = `${backendUrl}/api/auth/google`
+  }
 
   const validate = () => {
     const errs = {}
@@ -281,17 +308,27 @@ const Signup_page = () => {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Password *
             </label>
-            <input
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                errors.password ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="Create a password"
-              disabled={submitting}
-            />
+            <div className="relative">
+              <input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={handleChange}
+                className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                  errors.password ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Create a password"
+                disabled={submitting}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                disabled={submitting}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
             {errors.password && (
               <p className="text-red-600 text-sm flex items-center mt-1">
                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -368,6 +405,25 @@ const Signup_page = () => {
           )}
         </button>
       </form>
+
+      {/* Divider */}
+      <div className="my-6 flex items-center">
+        <div className="flex-1 border-t border-gray-300"></div>
+        <div className="px-4 text-sm text-gray-500">or</div>
+        <div className="flex-1 border-t border-gray-300"></div>
+      </div>
+
+      {/* Google Sign Up */}
+      <button 
+        onClick={handleGoogleSignup}
+        disabled={submitting}
+        className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-3 px-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M44.5 20H24v8.5h11.9C34.3 32.6 29.7 36 24 36c-7 0-12.7-5.7-12.7-12.7S17 10.7 24 10.7c3.3 0 6.2 1.2 8.4 3.1l6-6C36 4 30.5 2 24 2 12 2 2 12 2 24s10 22 22 22c11.9 0 21.6-9.3 22-21h-1.5z" fill="#EA4335" />
+        </svg>
+        <span>Continue with Google</span>
+      </button>
 
       {/* Login Link */}
       <div className="text-center mt-8 pt-6 border-t border-gray-200">

@@ -1,6 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import BookCard from '../Components/Dashboard/BookCard'
 import { apiFetch } from '../lib/api'
+import {
+  Search,
+  Filter,
+  SlidersHorizontal,
+  X,
+  BookOpen,
+  TrendingUp,
+  Download,
+  Star,
+  ChevronDown,
+  BookMarked,
+  User
+} from 'lucide-react'
 
 const DashboardLibrary = () => {
   const [books, setBooks] = useState([])
@@ -22,7 +35,7 @@ const DashboardLibrary = () => {
     ;(async () => {
       setLoading(true)
       try {
-  const res = await apiFetch('/api/admin/books')
+        const res = await apiFetch('/api/admin/books')
         if (!res.ok) {
           console.error('Failed to fetch books for library', res.status)
           if (mounted) setBooks([])
@@ -38,10 +51,9 @@ const DashboardLibrary = () => {
           image: b.coverUrl || b.cover || '/APP_LOGO.png',
           fileUrl: b.fileUrl || b.file || '',
           category: b.category || '',
-          // readers/downloads absent in backend - approximate with borrowCount
           readers: b.borrowCount || 0,
-          downloads: b.downloadCount || 0,
-          rating: b.rating || null,
+          downloads: b.borrowCount || 0,
+          rating: null,
           pages: b.pages || null,
           subject: b.category || '',
           class: b.level || '',
@@ -120,8 +132,8 @@ const DashboardLibrary = () => {
     return (
       <div className="flex items-center justify-center min-h-48">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading library...</p>
+          <div className="w-12 h-12 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading library...</p>
         </div>
       </div>
     )
@@ -130,64 +142,66 @@ const DashboardLibrary = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <p className="text-gray-600">Discover and borrow educational resources</p>
+          <h1 className="text-2xl font-semibold text-gray-900">Library</h1>
+          <p className="text-gray-600 mt-1">Discover and access educational resources</p>
         </div>
-        <div className="mt-4 lg:mt-0 flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <span>📚</span>
-            <span>{filteredBooks.length} books</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500">
+            <BookOpen className="w-4 h-4" />
+            <span>{filteredBooks.length} resources</span>
           </div>
         </div>
       </div>
 
       {/* Main Search and Controls */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           {/* Search Bar */}
           <div className="flex-1">
             <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search books, authors, or topics..."
+                placeholder="Search resources, authors, or topics..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200"
               />
-              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                🔍
-              </div>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3">
             {/* Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-            >
-              <option value="popular">Most Popular</option>
-              <option value="downloads">Most Downloads</option>
-              <option value="title">Title A-Z</option>
-              <option value="rating">Highest Rated</option>
-            </select>
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 text-sm"
+              >
+                <option value="popular">Most Popular</option>
+                <option value="downloads">Most Downloads</option>
+                <option value="title">Title A-Z</option>
+                <option value="rating">Highest Rated</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
 
             {/* Filter Toggle Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center space-x-2 px-4 py-3 rounded-xl border transition-all duration-200 ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all duration-200 ${
                 showFilters || hasActiveFilters
                   ? 'bg-blue-50 border-blue-200 text-blue-700'
-                  : 'border-gray-300 text-gray-600 hover:border-gray-400'
+                  : 'border-gray-300 text-gray-600 hover:border-blue-300 hover:bg-blue-50'
               }`}
             >
-              <span>⚙️</span>
-              <span>Filters</span>
+              <SlidersHorizontal className={`w-4 h-4 ${hasActiveFilters ? 'text-blue-600' : ''}`} />
+              <span className="text-sm font-medium">Filters</span>
               {hasActiveFilters && (
-                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
               )}
             </button>
 
@@ -195,8 +209,9 @@ const DashboardLibrary = () => {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="px-4 py-3 text-red-600 hover:text-red-700 font-medium transition-colors duration-200"
+                className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors duration-200"
               >
+                <X className="w-4 h-4" />
                 Clear
               </button>
             )}
@@ -208,13 +223,14 @@ const DashboardLibrary = () => {
           <div className="mt-6 pt-6 border-t border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                  <BookMarked className="w-4 h-4 text-gray-400" />
                   Class
                 </label>
                 <select
                   value={filters.class}
                   onChange={(e) => handleFilterChange('class', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200"
                 >
                   <option value="">All Classes</option>
                   {uniqueClasses.map(cls => (
@@ -224,13 +240,14 @@ const DashboardLibrary = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-gray-400" />
                   Subject
                 </label>
                 <select
                   value={filters.subject}
                   onChange={(e) => handleFilterChange('subject', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200"
                 >
                   <option value="">All Subjects</option>
                   {uniqueSubjects.map(subject => (
@@ -240,13 +257,14 @@ const DashboardLibrary = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-gray-400" />
                   Author
                 </label>
                 <select
                   value={filters.author}
                   onChange={(e) => handleFilterChange('author', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200"
                 >
                   <option value="">All Authors</option>
                   {uniqueAuthors.map(author => (
@@ -262,35 +280,50 @@ const DashboardLibrary = () => {
         {hasActiveFilters && (
           <div className="mt-4 flex flex-wrap gap-2">
             {filters.class && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                Class: {filters.class}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
+                <BookMarked className="w-3 h-3" />
+                {filters.class}
                 <button 
                   onClick={() => handleFilterChange('class', '')}
-                  className="ml-2 hover:text-blue-900"
+                  className="ml-1 hover:text-blue-900 transition-colors"
                 >
-                  ×
+                  <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {filters.subject && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                Subject: {filters.subject}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-700">
+                <BookOpen className="w-3 h-3" />
+                {filters.subject}
                 <button 
                   onClick={() => handleFilterChange('subject', '')}
-                  className="ml-2 hover:text-green-900"
+                  className="ml-1 hover:text-green-900 transition-colors"
                 >
-                  ×
+                  <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {filters.author && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                Author: {filters.author}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 text-purple-700">
+                <User className="w-3 h-3" />
+                {filters.author}
                 <button 
                   onClick={() => handleFilterChange('author', '')}
-                  className="ml-2 hover:text-purple-900"
+                  className="ml-1 hover:text-purple-900 transition-colors"
                 >
-                  ×
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {filters.search && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                <Search className="w-3 h-3" />
+                "{filters.search}"
+                <button 
+                  onClick={() => handleFilterChange('search', '')}
+                  className="ml-1 hover:text-gray-900 transition-colors"
+                >
+                  <X className="w-3 h-3" />
                 </button>
               </span>
             )}
@@ -300,20 +333,36 @@ const DashboardLibrary = () => {
 
       {/* Books Grid */}
       {filteredBooks.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBooks.map(book => (
-            <BookCard key={book.id} book={book} />
-          ))}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Available Resources <span className="text-gray-500">({filteredBooks.length})</span>
+            </h2>
+            <div className="flex items-center gap-1 text-sm text-gray-500">
+              <TrendingUp className="w-4 h-4" />
+              Sorted by {sortBy === 'popular' ? 'Most Popular' : 
+                        sortBy === 'downloads' ? 'Most Downloads' : 
+                        sortBy === 'title' ? 'Title A-Z' : 'Highest Rated'}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredBooks.map(book => (
+              <BookCard key={book.id} book={book} />
+            ))}
+          </div>
         </div>
       ) : (
-        <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-200">
-          <div className="text-6xl mb-4">📚</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No books found</h3>
-          <p className="text-gray-600 mb-4">Try adjusting your search or filters</p>
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No resources found</h3>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+            We couldn't find any resources matching your search criteria. Try adjusting your filters or search terms.
+          </p>
           <button
             onClick={clearFilters}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-medium"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
           >
+            <X className="w-4 h-4" />
             Clear All Filters
           </button>
         </div>

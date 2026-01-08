@@ -7,13 +7,12 @@ const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // when sidebar is fixed, main content should have left margin to avoid overlap on md+
-  const mainMarginClass = collapsed ? 'md:ml-16' : 'md:ml-64'
-  const mainPaddingLeftClass = collapsed ? 'md:pl-4' : 'md:pl-8'
+  const mainMarginClass = collapsed ? 'md:ml-20' : 'md:ml-72'
+  const mainPaddingLeftClass = collapsed ? 'md:pl-4' : 'md:pl-6'
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar (fixed) */}
+      {/* Sidebar */}
       <Sidebar
         collapsed={collapsed}
         mobileOpen={mobileOpen}
@@ -21,12 +20,17 @@ const DashboardLayout = () => {
         onClose={() => setMobileOpen(false)}
       />
 
-      <div className={`flex-1 flex flex-col transition-all duration-200 ${mainMarginClass} ${mainPaddingLeftClass}`}>
-        <DashboardNav collapsed={collapsed} onToggleSidebar={() => setMobileOpen(v => !v)} />
+      {/* Main Content */}
+      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${mainMarginClass} ${mainPaddingLeftClass}`}>
+        <DashboardNav 
+          collapsed={collapsed} 
+          onToggleSidebar={() => setMobileOpen(v => !v)} 
+        />
 
-        {/* add top padding equal to nav height so content is not hidden under fixed nav */}
-        <main className="pt-[90px] p-6">
-          <Outlet />
+        <main className="pt-20 p-4 md:p-6">
+          <div className="max-w-7xl mx-auto mt-[10px] md:mt-[80px]">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useToast } from '../Components/Notifications/ToastProvider'
+import { useAchievementPopup } from '../Components/Notifications/AchievementPopup'
 
 const BookPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { add: addToast } = useToast()
+  const { showMultipleAchievements } = useAchievementPopup()
   const [book, setBook] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -47,9 +51,63 @@ const BookPage = () => {
     </div>
   )
 
-  const handleRead = () => {
-    if (book.fileUrl) window.open(book.fileUrl, '_blank', 'noopener')
-    else alert('No readable file available')
+  const handleRead = async () => {
+    if (book.fileUrl) {
+      window.open(book.fileUrl, '_blank', 'noopener')
+      // Implicitly log a small reading activity
+      try {
+        const res = await apiFetch('/api/users/log-activity', {
+          method: 'POST',
+          body: JSON.stringify({
+            bookId: book._id,
+            durationMinutes: 5,
+            pagesRead: 2,
+            type: 'read'
+          })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.newAchievements && data.newAchievements.length > 0) {
+            showMultipleAchievements(data.newAchievements)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to log auto-activity', err)
+      }
+    } else {
+      alert('No readable file available')
+    }
+  }
+
+  const [showLogModal, setShowLogModal] = useState(false)
+  const [logData, setLogData] = useState({ minutes: '', pages: '' })
+
+  const handleLogActivity = async (e) => {
+    e.preventDefault()
+    try {
+      const res = await apiFetch('/api/users/log-activity', {
+        method: 'POST',
+        body: JSON.stringify({
+          bookId: book._id,
+          durationMinutes: parseInt(logData.minutes) || 0,
+          pagesRead: parseInt(logData.pages) || 0,
+          type: 'read'
+        })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        addToast({ message: 'Activity logged successfully!', type: 'success' })
+        setShowLogModal(false)
+        setLogData({ minutes: '', pages: '' })
+        
+        // Show achievement popup if any were unlocked
+        if (data.newAchievements && data.newAchievements.length > 0) {
+          showMultipleAchievements(data.newAchievements)
+        }
+      }
+    } catch (err) {
+      addToast({ message: 'Failed to log activity', type: 'error' })
+    }
   }
 
   const handleDownload = async () => {
@@ -84,29 +142,75 @@ const BookPage = () => {
               <div className="text-center text-gray-400">No cover</div>
             )}
           </div>
-          <div className="mt-4 flex gap-3">
-            <button onClick={handleRead} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg">Read Now</button>
-            <button onClick={handleDownload} className="px-4 py-2 bg-gray-100 rounded-lg">Download</button>
+          <div className="mt-4 flex flex-col gap-3">
+            <div className="flex gap-3">
+              <button onClick={handleRead} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg">Read Now</button>
+              <button onClick={handleDownload} className="px-4 py-2 bg-gray-100 rounded-lg">Download</button>
+            </div>
+            <button 
+              onClick={() => setShowLogModal(true)}
+              className="w-full px-4 py-2 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+            >
+              Log Reading Session
+            </button>
           </div>
         </div>
 
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{book.title}</h1>
-          <p className="text-gray-600 mt-1">by {book.author}</p>
-          <div className="mt-4 text-sm text-gray-700">
-            <p className="mb-2"><strong>Category:</strong> {book.category || '—'}</p>
-            <p className="mb-2"><strong>Publisher:</strong> {book.publisher || '—'}</p>
-            <p className="mb-2"><strong>Published Year:</strong> {book.publishedYear || '—'}</p>
-            <p className="mb-2"><strong>ISBN:</strong> {book.isbn || '—'}</p>
-            <p className="mb-2"><strong>Copies:</strong> {book.availableCopies}/{book.totalCopies}</p>
-          </div>
-
+          {/* ...existing code... */}
           <div className="mt-6">
             <h3 className="font-semibold mb-2">Description</h3>
             <p className="text-gray-700 whitespace-pre-line">{book.description || 'No description available.'}</p>
           </div>
         </div>
       </div>
+
+      {showLogModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h2 className="text-xl font-bold mb-4">Log Progress</h2>
+            <form onSubmit={handleLogActivity} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Minutes Studied</label>
+                <input 
+                  type="number" 
+                  required
+                  value={logData.minutes}
+                  onChange={e => setLogData({...logData, minutes: e.target.value})}
+                  className="mt-1 block w-full border rounded-lg p-2"
+                  placeholder="e.g. 45"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Pages Read</label>
+                <input 
+                  type="number" 
+                  required
+                  value={logData.pages}
+                  onChange={e => setLogData({...logData, pages: e.target.value})}
+                  className="mt-1 block w-full border rounded-lg p-2"
+                  placeholder="e.g. 10"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowLogModal(false)}
+                  className="flex-1 px-4 py-2 border rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg"
+                >
+                  Save Log
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

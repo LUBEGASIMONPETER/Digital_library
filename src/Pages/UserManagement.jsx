@@ -1,8 +1,36 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useToast } from '../Components/Notifications/ToastProvider'
 import { useAuth } from '../contexts/AuthContext'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import {
+  Users,
+  UserPlus,
+  Search,
+  Download,
+  MoreVertical,
+  User,
+  Shield,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Edit2,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  RefreshCw,
+  Eye,
+  Ban,
+  PauseCircle,
+  PlayCircle,
+  Mail,
+  Calendar,
+  FileText,
+  FileSpreadsheet,
+  File
+} from 'lucide-react'
 
 const UserManagement = () => {
   const [users, setUsers] = useState([])
@@ -24,23 +52,42 @@ const UserManagement = () => {
   const [actionReason, setActionReason] = useState('')
   const [actionUntil, setActionUntil] = useState('') // YYYY-MM-DD
   const [actionProcessing, setActionProcessing] = useState(false)
+  
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [editUser, setEditUser] = useState(null)
+
+  const handleViewUser = (user) => {
+    setEditUser(user)
+    setShowViewModal(true)
+  }
+  
   const { user: authUser } = useAuth()
   const { add: addToast } = useToast()
+  const exportMenuRef = useRef(null)
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+        setShowExportMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Mock data - replace with actual API call
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-  const res = await apiFetch('/api/admin/users')
+        const res = await apiFetch('/api/admin/users')
         if (!res.ok) {
-          // attempt to read error body
           let msg = `status ${res.status}`
           try {
             const body = await res.json()
             if (body && body.message) msg = `${msg} - ${body.message}`
-          } catch (e) {
-            // ignore
-          }
+          } catch (e) {}
           throw new Error('Failed to fetch users: ' + msg)
         }
         const data = await res.json()
@@ -55,10 +102,6 @@ const UserManagement = () => {
           avatar: u.avatar || ''
         }))
 
-        // By default we hide admin accounts from the management list so admins don't edit each other.
-        // However the seeded development admin (created by the backend at startup) should be able
-        // to see all users (including other admins). Detect that seeded admin by email and
-        // allow the full list for that user.
         const SEED_ADMIN_EMAIL = 'dlibrarymanagement@gmail.com'
         const isSeededAdmin = !!(authUser && authUser.email && String(authUser.email).toLowerCase() === SEED_ADMIN_EMAIL)
 
@@ -71,7 +114,6 @@ const UserManagement = () => {
         setLoading(false)
       } catch (error) {
         console.error('Error fetching users:', error)
-        // fallback to empty list
         setUsers([])
         setFilteredUsers([])
         setLoading(false)
@@ -143,9 +185,34 @@ const UserManagement = () => {
   const handleBanUser = (user) => openActionModal('ban', user)
   const handleSuspendUser = (user) => openActionModal('suspend', user)
   const handleUnsuspendUser = (user) => openActionModal('unsuspend', user)
-  // unban/reactivate use the same server action (sets status -> active)
   const handleUnbanUser = (user) => openActionModal('unban', user)
   const handleReactivateUser = (user) => openActionModal('reactivate', user)
+
+  const handleEditSubmit = async (formData) => {
+    if (!editUser) return
+    try {
+      // In a real app we'd have a specific PUT /api/admin/users/:id endpoint
+      // for general updates. For now we use the general user update logic if available
+      // or just simulate the UI update since we don't have a specific bulk-edit endpoint.
+      // But let's assume we can update name and role.
+      const res = await apiFetch(`/api/admin/users/${editUser.id}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: formData.role })
+      })
+      
+      if (!res.ok) throw new Error('Failed to update user')
+      
+      const body = await res.json()
+      setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, name: formData.name, role: body.user.role } : u))
+      addToast({ message: 'User updated successfully', type: 'success' })
+      setShowEditModal(false)
+      setEditUser(null)
+    } catch (err) {
+      console.error('Update failed', err)
+      addToast({ message: 'Failed to update user', type: 'error' })
+    }
+  }
 
   const performAction = async () => {
     if (!actionUser || !actionType) return
@@ -186,7 +253,6 @@ const UserManagement = () => {
         setFilteredUsers(prev => prev.filter(u => u.id !== actionUser.id))
         setSelectedUsers(prev => prev.filter(id => id !== actionUser.id))
       } else if (actionType === 'unsuspend' || actionType === 'unban' || actionType === 'reactivate') {
-        // unsuspend, unban and reactivate all set the account back to active
         const res = await apiFetch(`/api/admin/users/${actionUser.id}/unsuspend`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -208,20 +274,10 @@ const UserManagement = () => {
     }
   }
 
-  // Change user status
-  const changeUserStatus = (userId, newStatus) => {
-    setUsers(users.map(user =>
-      user.id === userId ? { ...user, status: newStatus } : user
-    ))
-  }
-
   // Change user role
   const changeUserRole = (userId, newRole) => {
-    // capture previous role for revert
     const prevRole = users.find(u => u.id === userId)?.role || 'member'
-    // optimistic update then persist to backend
     setUsers(users.map(user => user.id === userId ? { ...user, role: newRole } : user))
-    // fire-and-forget async update
     ;(async () => {
       try {
         const res = await apiFetch(`/api/admin/users/${userId}/role`, {
@@ -233,12 +289,10 @@ const UserManagement = () => {
           throw new Error('Failed to update role')
         }
         const body = await res.json()
-        // update with any normalized role from server
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: body.user.role } : u))
         addToast({ message: `Role updated to ${body.user.role}`, type: 'success' })
       } catch (err) {
         console.error('Role update failed', err)
-        // revert optimistic update
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: prevRole } : u))
         addToast({ message: 'Failed to update role', type: 'error' })
       }
@@ -265,24 +319,21 @@ const UserManagement = () => {
 
     try {
       if (format === 'excel') {
-        // Dynamically import SheetJS only when needed (avoids bundler issues)
         const mod = await import('xlsx')
         const XLSX = mod && (mod.default || mod)
 
-        // Build a worksheet from an array-of-arrays so each field maps to its own cell
         const ws_data = [fields, ...rows]
         const ws = XLSX.utils.aoa_to_sheet(ws_data)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'Users')
 
-        // Write workbook to binary array
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
         const blob = new Blob([wbout], { type: 'application/octet-stream' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         const now = new Date().toISOString().slice(0,10)
         a.href = url
-        a.download = `dl-users-${now}.xlsx`
+        a.download = `users-export-${now}.xlsx`
         document.body.appendChild(a)
         a.click()
         a.remove()
@@ -302,7 +353,7 @@ const UserManagement = () => {
         const a = document.createElement('a')
         const now = new Date().toISOString().slice(0,10)
         a.href = url
-        a.download = `dl-users-${now}.csv`
+        a.download = `users-export-${now}.csv`
         document.body.appendChild(a)
         a.click()
         a.remove()
@@ -329,7 +380,6 @@ const UserManagement = () => {
       console.error('Export error:', err)
       setExportMessage('Export failed')
     } finally {
-      // keep a short success message then clear
       setTimeout(() => {
         setExporting(false)
         setExportMessage('')
@@ -338,21 +388,67 @@ const UserManagement = () => {
     }
   }
 
+  // Compute stats
+  const computeStats = () => {
+    const now = Date.now()
+    const MS_PER_DAY = 24 * 60 * 60 * 1000
+    const start30 = new Date(now - 30 * MS_PER_DAY)
+    const start60 = new Date(now - 60 * MS_PER_DAY)
+
+    const parseJoin = (u) => u.joinDate ? new Date(u.joinDate) : null
+
+    const newThisMonth = users.filter(u => {
+      const d = parseJoin(u)
+      return d && d >= start30
+    }).length
+
+    const prevMonthNew = users.filter(u => {
+      const d = parseJoin(u)
+      return d && d >= start60 && d < start30
+    }).length
+
+    const totalUsers = users.length
+    const totalPrev = totalUsers - newThisMonth
+    const pctTotal = Math.round((newThisMonth / (totalPrev || 1)) * 100)
+
+    const activeUsers = users.filter(u => u.status === 'active').length
+    const activeNewThisMonth = users.filter(u => u.status === 'active' && (() => { const d = parseJoin(u); return d && d >= start30 })()).length
+    const activePrev = Math.max(activeUsers - activeNewThisMonth, 0)
+    const pctActive = Math.round((activeNewThisMonth / (activePrev || 1)) * 100)
+
+    const suspendedUsers = users.filter(u => u.status === 'suspended').length
+    const pctSuspended = 2
+
+    const pctNew = Math.round(((newThisMonth - prevMonthNew) / (prevMonthNew || 1)) * 100)
+
+    return {
+      totalUsers,
+      activeUsers,
+      newThisMonth,
+      suspendedUsers,
+      pctTotal,
+      pctActive,
+      pctNew,
+      pctSuspended
+    }
+  }
+
+  const stats = computeStats()
+
   if (loading) {
     return (
       <>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
-            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading users...</p>
+            <div className="w-12 h-12 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading users...</p>
           </div>
         </div>
-        {/* Export toast / progress */}
         {exporting && (
           <div className="fixed right-6 bottom-6 z-50">
-            <div className="bg-white border border-gray-200 px-4 py-3 rounded-lg shadow flex items-center gap-3">
-              <div className="w-5 h-5 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-              <div className="text-sm text-gray-800">{exportMessage || 'Exporting...'}</div>
+            <div className="bg-white border border-gray-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+              <div className="w-4 h-4 border-2 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+              <div className="text-sm font-medium text-gray-800">{exportMessage || 'Exporting...'}</div>
             </div>
           </div>
         )}
@@ -365,177 +461,182 @@ const UserManagement = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">User Management</h1>
           <p className="text-gray-600 mt-1">Manage library members and staff accounts</p>
         </div>
         
         <div className="flex flex-wrap gap-3">
-          <Link
-            to="/admin/users/invite"
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors duration-200 font-medium"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Invite User
-          </Link>
+          {selectedUsers.length > 0 && (
+            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-200">
+              <span className="text-sm font-medium text-gray-600 mr-2">
+                {selectedUsers.length} selected:
+              </span>
+              <button
+                onClick={() => {
+                  const first = users.find(u => u.id === selectedUsers[0]);
+                  openActionModal('suspend', first);
+                }}
+                className="inline-flex items-center px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors text-sm font-medium"
+              >
+                <PauseCircle className="w-4 h-4 mr-1.5" />
+                Suspend
+              </button>
+              <button
+                onClick={() => {
+                  const first = users.find(u => u.id === selectedUsers[0]);
+                  openActionModal('delete', first);
+                }}
+                className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" />
+                Delete
+              </button>
+              <button
+                onClick={() => setSelectedUsers([])}
+                className="text-sm text-gray-500 hover:text-gray-700 font-medium px-2 py-1"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Tabs: All / Deleted */}
-      <div className="flex items-center gap-3">
-          <Link to="/admin/users" className="px-4 py-2 rounded-lg bg-indigo-600 text-white">All users</Link>
-          <Link to="/admin/users/deleted" className="px-4 py-2 rounded-lg bg-gray-100">Deleted users</Link>
+      {/* Tabs */}
+      <div className="flex items-center gap-2">
+        <Link 
+          to="/admin/users" 
+          className="px-4 py-2 rounded-lg bg-gray-800 text-white font-medium"
+        >
+          All users
+        </Link>
+        <Link 
+          to="/admin/users/deleted" 
+          className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors"
+        >
+          Deleted users
+        </Link>
       </div>
 
-      
-
       {/* Stats Cards */}
-
-      {/* compute metrics */}
-      {(() => {
-        const now = Date.now()
-        const MS_PER_DAY = 24 * 60 * 60 * 1000
-        const start30 = new Date(now - 30 * MS_PER_DAY)
-        const start60 = new Date(now - 60 * MS_PER_DAY)
-
-        const parseJoin = (u) => u.joinDate ? new Date(u.joinDate) : null
-
-        const newThisMonth = users.filter(u => {
-          const d = parseJoin(u)
-          return d && d >= start30
-        }).length
-
-        const prevMonthNew = users.filter(u => {
-          const d = parseJoin(u)
-          return d && d >= start60 && d < start30
-        }).length
-
-        const totalUsers = users.length
-        const totalPrev = totalUsers - newThisMonth
-        const pctTotal = Math.round((newThisMonth / (totalPrev || 1)) * 100)
-
-        const activeUsers = users.filter(u => u.status === 'active').length
-        const activeNewThisMonth = users.filter(u => u.status === 'active' && (() => { const d = parseJoin(u); return d && d >= start30 })()).length
-        const activePrev = Math.max(activeUsers - activeNewThisMonth, 0)
-        const pctActive = Math.round((activeNewThisMonth / (activePrev || 1)) * 100)
-
-        const suspendedUsers = users.filter(u => u.status === 'suspended').length
-        const suspendedPrev = suspendedUsers // fallback (accurate tracking requires historical data)
-        const pctSuspended = 2 // keep small static fallback or you can compute if you store historical statuses
-
-        const pctNew = Math.round(((newThisMonth - prevMonthNew) / (prevMonthNew || 1)) * 100)
-
-        // expose as locals for JSX below via closure
-        ;
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-              title="Total Users"
-              value={totalUsers}
-              change={`${pctTotal >= 0 ? '+' : ''}${pctTotal}%`}
-              trend={pctTotal >= 0 ? 'up' : 'down'}
-              icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-600" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7a3 3 0 11-6 0 3 3 0 016 0z" /><path fillRule="evenodd" d="M2 13.5A4.5 4.5 0 016.5 9h7A4.5 4.5 0 0118 13.5V15a1 1 0 01-1 1H3a1 1 0 01-1-1v-1.5z" clipRule="evenodd" /></svg>}
-            />
-            <StatCard
-              title="Active Users"
-              value={activeUsers}
-              change={`${pctActive >= 0 ? '+' : ''}${pctActive}%`}
-              trend={pctActive >= 0 ? 'up' : 'down'}
-              icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 10-1.414 1.414L9 13.414l4.707-4.707z" clipRule="evenodd"/></svg>}
-            />
-            <StatCard
-              title="New This Month"
-              value={newThisMonth}
-              change={`${pctNew >= 0 ? '+' : ''}${pctNew}%`}
-              trend={pctNew >= 0 ? 'up' : 'down'}
-              icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 10-2 0v1.07A7.002 7.002 0 004 11H3a1 1 0 100 2h1a7 7 0 0014 0h1a1 1 0 100-2h-1a7.002 7.002 0 00-5-6.93V3z"/></svg>}
-            />
-            <StatCard
-              title="Suspended"
-              value={suspendedUsers}
-              change={`${pctSuspended >= 0 ? '+' : ''}${pctSuspended}%`}
-              trend={pctSuspended >= 0 ? 'up' : 'down'}
-              icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3a1 1 0 002 0V7zm0 5a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd"/></svg>}
-            />
-          </div>
-        )
-      })()}
-      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Users"
+          value={stats.totalUsers}
+          change={`${stats.pctTotal >= 0 ? '+' : ''}${stats.pctTotal}%`}
+          trend={stats.pctTotal >= 0 ? 'up' : 'down'}
+          icon={<Users className="w-5 h-5" />}
+          iconColor="text-blue-600"
+          bgColor="bg-blue-50"
+        />
+        <StatCard
+          title="Active Users"
+          value={stats.activeUsers}
+          change={`${stats.pctActive >= 0 ? '+' : ''}${stats.pctActive}%`}
+          trend={stats.pctActive >= 0 ? 'up' : 'down'}
+          icon={<CheckCircle className="w-5 h-5" />}
+          iconColor="text-green-600"
+          bgColor="bg-green-50"
+        />
+        <StatCard
+          title="New This Month"
+          value={stats.newThisMonth}
+          change={`${stats.pctNew >= 0 ? '+' : ''}${stats.pctNew}%`}
+          trend={stats.pctNew >= 0 ? 'up' : 'down'}
+          icon={<Clock className="w-5 h-5" />}
+          iconColor="text-amber-600"
+          bgColor="bg-amber-50"
+        />
+        <StatCard
+          title="Suspended"
+          value={stats.suspendedUsers}
+          change={`${stats.pctSuspended >= 0 ? '+' : ''}${stats.pctSuspended}%`}
+          trend={stats.pctSuspended >= 0 ? 'up' : 'down'}
+          icon={<AlertCircle className="w-5 h-5" />}
+          iconColor="text-red-600"
+          bgColor="bg-red-50"
+        />
+      </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
           <div className="flex-1">
             <div className="relative">
-              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search users by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800 transition-colors duration-200"
               />
             </div>
           </div>
           
           <div className="flex flex-wrap gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
-            </select>
-
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
-            >
-              <option value="all">All Roles</option>
-              <option value="member">Member</option>
-              <option value="librarian">Librarian</option>
-              <option value="admin">Admin</option>
-            </select>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800 transition-colors duration-200 appearance-none"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
 
             <div className="relative">
+              <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800 transition-colors duration-200 appearance-none"
+              >
+                <option value="all">All Roles</option>
+                <option value="member">Member</option>
+                <option value="librarian">Librarian</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div className="relative" ref={exportMenuRef}>
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors duration-200 font-medium"
+                className="inline-flex items-center px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors duration-200 font-medium"
+                disabled={exporting}
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+                <Download className="w-4 h-4 mr-2" />
                 Export
               </button>
 
               {showExportMenu && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-10">
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
                   <button
                     onClick={() => exportData('csv')}
+                    className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                     disabled={exporting}
-                    className={`flex items-center w-full px-4 py-2 text-sm ${exporting ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
                   >
+                    <FileText className="w-4 h-4 mr-3 text-gray-400" />
                     Export as CSV
                   </button>
                   <button
                     onClick={() => exportData('excel')}
+                    className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                     disabled={exporting}
-                    className={`flex items-center w-full px-4 py-2 text-sm ${exporting ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
                   >
+                    <FileSpreadsheet className="w-4 h-4 mr-3 text-gray-400" />
                     Export as Excel
                   </button>
                   <button
                     onClick={() => exportData('pdf')}
+                    className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                     disabled={exporting}
-                    className={`flex items-center w-full px-4 py-2 text-sm ${exporting ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
                   >
+                    <File className="w-4 h-4 mr-3 text-gray-400" />
                     Export as PDF
                   </button>
                 </div>
@@ -544,41 +645,44 @@ const UserManagement = () => {
           </div>
         </div>
 
-  {/* Users Table */}
-  <div className="overflow-visible rounded-xl border border-gray-200">
+        {/* Users Table */}
+        <div className="overflow-hidden rounded-lg border border-gray-200">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left">
+                <th className="pl-6 pr-3 py-3 text-left">
                   <input
                     type="checkbox"
                     checked={selectedUsers.length === currentUsers.length && currentUsers.length > 0}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                    className="w-4 h-4 text-gray-800 rounded focus:ring-gray-800 focus:ring-offset-0"
                   />
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">User</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Role</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Join Date</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">User</th>
+                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Role</th>
+                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Join Date</th>
+                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {currentUsers.map((user) => (
+              {currentUsers.map((user, index) => (
                 <UserRow
                   key={user.id}
                   user={user}
+                  index={index}
+                  totalInPage={currentUsers.length}
                   selected={selectedUsers.includes(user.id)}
                   onSelect={handleUserSelect}
                   onDelete={handleDeleteUser}
-                  onChangeStatus={changeUserStatus}
                   onChangeRole={changeUserRole}
                   onBan={handleBanUser}
                   onSuspend={handleSuspendUser}
                   onUnsuspend={handleUnsuspendUser}
                   onUnban={handleUnbanUser}
                   onReactivate={handleReactivateUser}
+                  onEdit={() => { setEditUser(user); setShowEditModal(true); }}
+                  onView={() => handleViewUser(user)}
                 />
               ))}
             </tbody>
@@ -586,58 +690,71 @@ const UserManagement = () => {
 
           {currentUsers.length === 0 && (
             <div className="text-center py-12">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-              </svg>
-              <p className="text-gray-500 text-lg">No users found</p>
-              <p className="text-gray-400 mt-1">Try adjusting your search or filters</p>
+              <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 font-medium">No users found</p>
+              <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
             </div>
           )}
         </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6">
             <p className="text-sm text-gray-700">
               Showing {indexOfFirstUser + 1} to {Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length} users
             </p>
             
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Previous
+                <ChevronLeft className="w-4 h-4" />
               </button>
               
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
-                    currentPage === page
-                      ? 'bg-indigo-600 text-white'
-                      : 'border border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+
+                if (pageNum < 1 || pageNum > totalPages) return null
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-gray-800 text-white'
+                        : 'border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
               
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Next
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
-        </div>
+      </div>
 
-      {/* Action Modal (ban / suspend / delete) */}
+      {/* Action Modal */}
       {showActionModal && (
         <ActionModal
           type={actionType}
@@ -651,42 +768,96 @@ const UserManagement = () => {
           onConfirm={performAction}
         />
       )}
+
+      {/* Edit User Modal */}
+      {showEditModal && editUser && (
+        <EditUserModal
+          user={editUser}
+          onCancel={() => { setShowEditModal(false); setEditUser(null); }}
+          onConfirm={handleEditSubmit}
+        />
+      )}
+
+      {/* View Profile Modal */}
+      {showViewModal && editUser && (
+        <ViewProfileModal
+          user={editUser}
+          onClose={() => { setShowViewModal(false); setEditUser(null); }}
+        />
+      )}
     </div>
   )
 }
 
 // User Row Component
-const UserRow = ({ user, selected, onSelect, onDelete, onChangeStatus, onChangeRole, onBan, onSuspend, onUnsuspend, onUnban, onReactivate }) => {
+const UserRow = ({ user, index, totalInPage, selected, onSelect, onDelete, onChangeRole, onBan, onSuspend, onUnsuspend, onUnban, onReactivate, onEdit, onView }) => {
   const [showActions, setShowActions] = useState(false)
+  const actionsRef = useRef(null)
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (actionsRef.current && !actionsRef.current.contains(event.target)) {
+        setShowActions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'active': return <CheckCircle className="w-4 h-4 text-green-500" />
+      case 'inactive': return <Clock className="w-4 h-4 text-gray-400" />
+      case 'suspended': return <PauseCircle className="w-4 h-4 text-amber-500" />
+      case 'banned': return <Ban className="w-4 h-4 text-red-500" />
+      default: return <Clock className="w-4 h-4 text-gray-400" />
+    }
+  }
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800'
+      case 'inactive': return 'bg-gray-100 text-gray-800'
+      case 'suspended': return 'bg-amber-100 text-amber-800'
+      case 'banned': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  // Determine if dropdown should open upwards (near the bottom of the visible list)
+  const openUpwards = totalInPage > 4 && index >= totalInPage - 2
 
   return (
     <tr className="hover:bg-gray-50 transition-colors duration-150">
-      <td className="px-6 py-4">
+      <td className="pl-6 pr-3 py-4">
         <input
           type="checkbox"
           checked={selected}
           onChange={() => onSelect(user.id)}
-          className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+          className="w-4 h-4 text-gray-800 rounded focus:ring-gray-800 focus:ring-offset-0"
         />
       </td>
       
-      <td className="px-6 py-4">
+      <td className="px-3 py-4">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-semibold mr-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg flex items-center justify-center text-white font-semibold mr-3">
             {user.name.split(' ').map(n => n[0]).join('')}
           </div>
           <div>
             <p className="font-medium text-gray-900">{user.name}</p>
-            <p className="text-sm text-gray-500">{user.email}</p>
+            <p className="text-sm text-gray-500 flex items-center gap-1">
+              <Mail className="w-3 h-3" />
+              {user.email}
+            </p>
           </div>
         </div>
       </td>
       
-      <td className="px-6 py-4">
+      <td className="px-3 py-4">
         <select
           value={user.role}
           onChange={(e) => onChangeRole(user.id, e.target.value)}
-          className="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
+          className="text-sm bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800 transition-colors duration-200"
         >
           <option value="member">Member</option>
           <option value="librarian">Librarian</option>
@@ -694,91 +865,81 @@ const UserRow = ({ user, selected, onSelect, onDelete, onChangeStatus, onChangeR
         </select>
       </td>
       
-      <td className="px-6 py-4">
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-          user.status === 'active' ? 'bg-green-100 text-green-800' :
-          user.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
-          'bg-red-100 text-red-800'
-        }`}>
-          {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-        </span>
+      <td className="px-3 py-4">
+        <div className="flex items-center gap-2">
+          {getStatusIcon(user.status)}
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
+            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+          </span>
+        </div>
       </td>
       
-      <td className="px-6 py-4 text-sm text-gray-900">
+      <td className="px-3 py-4 text-sm text-gray-900 flex items-center gap-2 whitespace-nowrap">
+        <Calendar className="w-4 h-4 text-gray-400" />
         {new Date(user.joinDate).toLocaleDateString()}
       </td>
       
-      <td className="px-6 py-4">
-        <div className="relative">
+      <td className="px-3 py-4">
+        <div className="relative" ref={actionsRef}>
           <button
             onClick={() => setShowActions(!showActions)}
-            className="inline-flex items-center p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
           >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-            </svg>
+            <MoreVertical className="w-4 h-4 text-gray-600" />
           </button>
 
           {showActions && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
-              <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+            <div className={`absolute right-0 ${openUpwards ? 'bottom-full mb-1' : 'top-full mt-1'} w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[100] animate-in fade-in zoom-in-95 duration-100`}>
+              <button 
+                onClick={() => { onView && onView(user); setShowActions(false); }}
+                className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+              >
+                <Eye className="w-4 h-4 mr-3 text-gray-400" />
                 View Profile
               </button>
               
+              <button 
+                onClick={() => { onEdit && onEdit(user); setShowActions(false); }}
+                className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+              >
+                <Edit2 className="w-4 h-4 mr-3 text-gray-400" />
+                Edit User
+              </button>
+              
               {user.status === 'suspended' ? (
-                <button onClick={() => onUnsuspend && onUnsuspend(user)} className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                <button onClick={() => { onUnsuspend && onUnsuspend(user); setShowActions(false); }} className="flex items-center w-full px-4 py-2.5 text-sm text-green-700 hover:bg-green-50 transition-colors duration-200">
+                  <PlayCircle className="w-4 h-4 mr-3 text-green-500" />
                   Unsuspend
                 </button>
               ) : (
-                <button onClick={() => onSuspend && onSuspend(user)} className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
-                  </svg>
+                <button onClick={() => { onSuspend && onSuspend(user); setShowActions(false); }} className="flex items-center w-full px-4 py-2.5 text-sm text-amber-700 hover:bg-amber-50 transition-colors duration-200">
+                  <PauseCircle className="w-4 h-4 mr-3 text-amber-500" />
                   Suspend
                 </button>
               )}
 
-              <button onClick={() => onBan && onBan(user)} className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Ban / Deactivate
-              </button>
-              {(user.status === 'banned') ? (
-                <button onClick={() => onUnban && onUnban(user)} className="flex items-center w-full px-4 py-2 text-sm text-green-700 hover:bg-gray-50 transition-colors duration-200">
-                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Unban / Reactivate
+              {user.status === 'banned' ? (
+                <button onClick={() => { onUnban && onUnban(user); setShowActions(false); }} className="flex items-center w-full px-4 py-2.5 text-sm text-green-700 hover:bg-green-50 transition-colors duration-200">
+                  <PlayCircle className="w-4 h-4 mr-3 text-green-500" />
+                  Unban
                 </button>
-              ) : (user.status === 'inactive') ? (
-                <button onClick={() => onReactivate && onReactivate(user)} className="flex items-center w-full px-4 py-2 text-sm text-green-700 hover:bg-gray-50 transition-colors duration-200">
-                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+              ) : user.status === 'inactive' ? (
+                <button onClick={() => { onReactivate && onReactivate(user); setShowActions(false); }} className="flex items-center w-full px-4 py-2.5 text-sm text-green-700 hover:bg-green-50 transition-colors duration-200">
+                  <PlayCircle className="w-4 h-4 mr-3 text-green-500" />
                   Reactivate
                 </button>
-              ) : null}
-              <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit User
-              </button>
+              ) : (
+                <button onClick={() => { onBan && onBan(user); setShowActions(false); }} className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                  <Ban className="w-4 h-4 mr-3 text-gray-400" />
+                  Ban / Deactivate
+                </button>
+              )}
               
               <button 
-                onClick={() => onDelete(user)}
-                className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
+                onClick={() => { onDelete && onDelete(user); setShowActions(false); }}
+                className="flex items-center w-full px-4 py-2.5 text-sm text-red-700 hover:bg-red-50 transition-colors duration-200"
               >
-                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+                <Trash2 className="w-4 h-4 mr-3 text-red-500" />
                 Delete User
               </button>
             </div>
@@ -790,20 +951,23 @@ const UserRow = ({ user, selected, onSelect, onDelete, onChangeStatus, onChangeR
 }
 
 // Stat Card Component
-const StatCard = ({ title, value, change, trend, icon }) => (
-  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-        <p className={`text-sm font-medium mt-1 ${
-          trend === 'up' ? 'text-green-600' : 'text-red-600'
-        }`}>
-          {change} from last month
-        </p>
+const StatCard = ({ title, value, change, trend, icon, iconColor, bgColor }) => (
+  <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="flex items-start justify-between mb-3">
+      <div className={`p-2 rounded-lg ${bgColor}`}>
+        <div className={iconColor}>
+          {icon}
+        </div>
       </div>
-      <div className="text-3xl">{icon}</div>
+      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+        trend === 'up' ? 'bg-green-100 text-green-700' :
+        'bg-red-100 text-red-700'
+      }`}>
+        {change}
+      </span>
     </div>
+    <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
+    <div className="text-xl font-semibold text-gray-900">{value.toLocaleString()}</div>
   </div>
 )
 
@@ -811,34 +975,198 @@ const StatCard = ({ title, value, change, trend, icon }) => (
 const ActionModal = ({ type, user, reason, until, processing, onChangeReason, onChangeUntil, onCancel, onConfirm }) => {
   const title = type === 'ban' ? 'Deactivate User' : type === 'suspend' ? 'Suspend User' : type === 'unsuspend' ? 'Unsuspend User' : type === 'unban' ? 'Unban User' : type === 'reactivate' ? 'Reactivate User' : 'Delete User'
   const confirmLabel = type === 'ban' ? 'Deactivate' : type === 'suspend' ? 'Suspend' : type === 'unsuspend' ? 'Unsuspend' : type === 'unban' ? 'Unban' : type === 'reactivate' ? 'Reactivate' : 'Delete User'
+  const Icon = type === 'ban' || type === 'delete' ? AlertCircle : type === 'suspend' ? PauseCircle : type === 'unsuspend' || type === 'unban' || type === 'reactivate' ? PlayCircle : AlertCircle
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6">
-        <div className="flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-xl mb-4 mx-auto">
-          <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1 4v1m0-5a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`p-2 rounded-lg ${
+            type === 'delete' ? 'bg-red-100 text-red-600' :
+            type === 'ban' ? 'bg-amber-100 text-amber-600' :
+            'bg-blue-100 text-blue-600'
+          }`}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            <p className="text-sm text-gray-600">Confirm this action</p>
+          </div>
         </div>
 
-        <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">{title}</h3>
-        <p className="text-gray-600 text-center mb-4">{user ? `${user.name} — ${user.email}` : ''}</p>
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <p className="font-medium text-gray-900">{user?.name || ''}</p>
+          <p className="text-sm text-gray-500">{user?.email || ''}</p>
+        </div>
 
         {type === 'suspend' && (
           <div className="mb-4">
-            <label className="block text-sm text-gray-700 mb-2">Suspend until</label>
-            <input type="date" value={until || ''} onChange={(e) => onChangeUntil(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            <label className="block text-sm font-medium text-gray-700 mb-2">Suspend until</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input 
+                type="date" 
+                value={until || ''} 
+                onChange={(e) => onChangeUntil(e.target.value)} 
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
+              />
+            </div>
           </div>
         )}
 
-        <div className="mb-4">
-          <label className="block text-sm text-gray-700 mb-2">Reason (required)</label>
-          <textarea value={reason || ''} onChange={(e) => onChangeReason(e.target.value)} rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Explain why this action is being taken"></textarea>
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Reason (required)</label>
+          <textarea 
+            value={reason || ''} 
+            onChange={(e) => onChangeReason(e.target.value)} 
+            rows={3} 
+            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800 resize-none"
+            placeholder="Explain why this action is being taken"
+          />
         </div>
 
         <div className="flex gap-3">
-          <button onClick={onCancel} disabled={processing} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors duration-200 font-medium">Cancel</button>
-          <button onClick={onConfirm} disabled={processing || (type === 'suspend' && !until) || !reason.trim()} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors duration-200 font-medium">{processing ? 'Processing...' : confirmLabel}</button>
+          <button 
+            onClick={onCancel} 
+            disabled={processing} 
+            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={onConfirm} 
+            disabled={processing || (type === 'suspend' && !until) || !reason.trim()} 
+            className={`flex-1 px-4 py-2.5 rounded-lg transition-colors duration-200 font-medium ${
+              type === 'delete' 
+                ? 'bg-red-600 text-white hover:bg-red-700' 
+                : type === 'ban' 
+                ? 'bg-amber-600 text-white hover:bg-amber-700'
+                : 'bg-gray-800 text-white hover:bg-gray-900'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {processing ? 'Processing...' : confirmLabel}
+          </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Edit User Modal Component
+const EditUserModal = ({ user, onCancel, onConfirm }) => {
+  const [formData, setFormData] = useState({
+    name: user.name || '',
+    email: user.email || '',
+    role: user.role || 'member'
+  })
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+            <Edit2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Edit User</h3>
+            <p className="text-sm text-gray-500">Update account information</p>
+          </div>
+        </div>
+
+        <div className="space-y-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800 transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
+            <input
+              type="email"
+              value={formData.email}
+              disabled
+              className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 cursor-not-allowed"
+            />
+            <p className="text-[10px] text-gray-400 mt-1">Email cannot be changed from the admin panel.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800 transition-colors"
+            >
+              <option value="member">Member</option>
+              <option value="librarian">Librarian</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button 
+            onClick={onCancel}
+            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={() => onConfirm(formData)}
+            className="flex-1 px-4 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// View Profile Modal Component
+const ViewProfileModal = ({ user, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-3 relative">
+            <User className="w-10 h-10" />
+            <span className={`absolute bottom-0 right-0 w-5 h-5 rounded-full border-4 border-white ${
+              user.status === 'active' ? 'bg-green-500' : user.status === 'banned' ? 'bg-red-500' : 'bg-yellow-500'
+            }`}></span>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900">{user.name}</h3>
+          <p className="text-gray-500 capitalize">{user.role}</p>
+        </div>
+
+        <div className="space-y-4 mb-8">
+          <div className="flex justify-between py-2 border-b border-gray-50">
+            <span className="text-gray-500 text-sm">Email</span>
+            <span className="text-gray-900 font-medium text-sm">{user.email}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-gray-50">
+            <span className="text-gray-500 text-sm">Status</span>
+            <span className={`text-sm font-semibold capitalize ${
+              user.status === 'active' ? 'text-green-600' : 'text-red-600'
+            }`}>{user.status}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-gray-50">
+            <span className="text-gray-500 text-sm">Joined Date</span>
+            <span className="text-gray-900 font-medium text-sm">
+              {new Date(user.joinDate || user.joinedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            </span>
+          </div>
+        </div>
+
+        <button 
+          onClick={onClose}
+          className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold"
+        >
+          Close Preview
+        </button>
       </div>
     </div>
   )

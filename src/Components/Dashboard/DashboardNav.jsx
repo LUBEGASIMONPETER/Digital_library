@@ -2,22 +2,61 @@ import React, { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
 import { useAuth } from '../../contexts/AuthContext'
-
-// For now we accept a mock user object or fallback to a sample
-const mockUser = { 
-  fullName: 'Alice Mwanga',
-  school: 'Kawempe High School',
-  level: 'A-Level Science'
-}
+import {
+  Search,
+  Bell,
+  ChevronDown,
+  User,
+  Settings,
+  Download,
+  Heart,
+  LogOut,
+  HelpCircle,
+  BookOpen,
+  Calendar,
+  CheckCircle,
+  Trophy
+} from 'lucide-react'
 
 const DashboardNav = ({ onToggleSidebar, collapsed = false, user: propUser }) => {
   const [open, setOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [achievements, setAchievements] = useState([])
+  const [currentAchievementIndex, setCurrentAchievementIndex] = useState(0)
   const menuRef = useRef(null)
   const notificationsRef = useRef(null)
+  const searchRef = useRef(null)
   const navigate = useNavigate()
   const { user: authUser, signOut } = useAuth()
 
+  // Fetch user's unlocked achievements
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      try {
+        const res = await apiFetch('/api/users/achievements')
+        if (res.ok) {
+          const data = await res.json()
+          const unlocked = (data.achievements || []).filter(a => a.unlocked)
+          setAchievements(unlocked)
+        }
+      } catch (err) {
+        console.error('Failed to fetch achievements for nav:', err)
+      }
+    }
+    fetchAchievements()
+  }, [])
+
+  // Rotate through achievements every 3 seconds
+  useEffect(() => {
+    if (achievements.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentAchievementIndex(prev => (prev + 1) % achievements.length)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [achievements.length])
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -26,253 +65,250 @@ const DashboardNav = ({ onToggleSidebar, collapsed = false, user: propUser }) =>
       if (notificationsRef.current && !notificationsRef.current.contains(e.target)) {
         setNotificationsOpen(false)
       }
+      if (searchRef.current && !searchRef.current.contains(e.target) && searchOpen) {
+        setSearchOpen(false)
+      }
     }
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
-  }, [])
+  }, [searchOpen])
 
-  const user = propUser || authUser || mockUser
+  const user = propUser || authUser || {
+    fullName: 'Alice Mwanga',
+    school: 'Kawempe High School',
+    level: 'A-Level Science'
+  }
+
   const displayName = user?.name || user?.fullName || ''
   const displaySchool = user?.schoolName || user?.school || ''
   const initial = (displayName.charAt(0) || 'U').toUpperCase()
 
   const handleSignOut = async () => {
-    // Clear common client-side auth storage and attempt server-side logout if available.
     try {
-      // Attempt server logout (optional; endpoint may not exist yet)
-      try {
-  await apiFetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-      } catch (err) {
-        // ignore - backend may not implement logout yet
-      }
-
-      // Remove common localStorage keys used for auth (non-destructive if not present)
-      const keys = ['token', 'accessToken', 'auth', 'user', 'currentUser']
-      keys.forEach(k => {
-        try { localStorage.removeItem(k) } catch (e) { /* ignore */ }
-      })
-
-      // Optionally clear sessionStorage as well
-      try { sessionStorage.removeItem('auth') } catch (e) { /* ignore */ }
-
-      // Notify auth context to clear user
-      try { signOut() } catch (e) { /* ignore */ }
-      // Navigate to login page
-      navigate('/auth/login')
+      await apiFetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     } catch (err) {
-      console.error('Sign out failed', err)
-      // Fallback navigation
-      navigate('/auth/login')
+      // ignore if endpoint doesn't exist
     }
+
+    // Clear auth data
+    const keys = ['token', 'accessToken', 'auth', 'user', 'currentUser']
+    keys.forEach(k => {
+      try { localStorage.removeItem(k) } catch (e) { }
+    })
+
+    try { sessionStorage.removeItem('auth') } catch (e) { }
+    try { signOut() } catch (e) { }
+    navigate('/auth/login')
   }
 
   const notifications = [
-    { id: 1, message: 'Your borrowed book is due tomorrow', type: 'warning', time: '5 min ago' },
-    { id: 2, message: 'New study materials available for Biology', type: 'info', time: '1 hour ago' },
-    { id: 3, message: 'Your reading list has been updated', type: 'success', time: '2 hours ago' }
+    { id: 1, message: 'Your borrowed book is due tomorrow', type: 'warning', time: '5 min ago', read: false },
+    { id: 2, message: 'New study materials available for Biology', type: 'info', time: '1 hour ago', read: true },
+    { id: 3, message: 'Your reading list has been updated', type: 'success', time: '2 hours ago', read: true }
   ]
 
-  const unreadNotifications = notifications.filter(n => n.type === 'warning').length
-
-  // left offset classes for fixed nav when sidebar is present on md+
-  // keep nav full-width on small devices and offset only on md+
-  const leftOffsetClass = collapsed ? 'md:left-16' : 'md:left-64'
+  const unreadCount = notifications.filter(n => !n.read).length
+  const leftOffsetClass = collapsed ? 'md:left-20' : 'md:left-72'
 
   return (
-    <div className={`fixed top-0 inset-x-0 md:right-0 ${leftOffsetClass} z-30 bg-white border-b border-gray-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between flex-wrap md:flex-nowrap gap-2 md:gap-0 shadow-sm`}>
-      {/* Left Section - Mobile Menu & Welcome */}
-      <div className="flex items-center space-x-4">
-        <button 
-          onClick={onToggleSidebar} 
-          className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-          aria-label="Toggle sidebar"
-        >
-          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-        
-        <div className="hidden md:block">
-          <h1 className="text-xl font-bold text-gray-900">Welcome back, {displayName.split(' ')[0] || displayName}! 👋</h1>
-          <p className="text-sm text-gray-500">Ready to continue your learning journey?</p>
-        </div>
-        
-        <div className="md:hidden">
-          <h3 className="text-lg font-semibold text-gray-900">{displayName.split(' ')[0] || displayName}</h3>
-        </div>
-      </div>
-
-      {/* Right Section - Actions & User Menu */}
-      <div className="flex items-center space-x-4">
-        {/* Search Button */}
-          <button className="hidden md:flex items-center space-x-2 px-3 py-2 rounded-xl border border-gray-300 hover:border-gray-400 transition-colors duration-200 text-gray-600 hover:text-gray-700">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <span className="text-sm">Search...</span>
-        </button>
-
-        {/* Notifications */}
-        <div className="relative" ref={notificationsRef}>
+    <nav 
+      className={`fixed top-0 inset-x-0 md:right-0 ${leftOffsetClass} z-40 bg-white border-b border-gray-200 px-4 md:px-6 transition-all duration-300 ease-in-out`}
+    >
+      <div className="h-20 flex items-center justify-between">
+        {/* Left Section */}
+        <div className="flex items-center gap-4">
           <button 
-            onClick={() => setNotificationsOpen(v => !v)}
-            className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
-            aria-label="Notifications"
+            onClick={onToggleSidebar}
+            className="md:hidden p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
+            aria-label="Toggle sidebar"
           >
-            <svg className="w-5 h-5 text-gray-600 group-hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM10.24 8.56a5.97 5.97 0 01-4.66-6.24M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-            {unreadNotifications > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {unreadNotifications}
-              </span>
-            )}
           </button>
-
-            {notificationsOpen && (
-            <div className="absolute right-0 mt-2 w-full max-w-xs md:max-w-sm bg-white rounded-2xl shadow-xl border border-gray-200 z-50 overflow-hidden">
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900">Notifications</h3>
-                <p className="text-sm text-gray-500">{notifications.length} unread</p>
-              </div>
-              
-              <div className="max-h-96 overflow-y-auto">
-                {notifications.map((notification) => (
-                  <div 
-                    key={notification.id}
-                    className={`p-4 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors duration-200 ${
-                      notification.type === 'warning' ? 'bg-yellow-50' : ''
-                    }`}
+          
+          <div className="hidden md:block">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold text-blue-600">
+                Hello, <span className="text-blue-500">{displayName.split(' ')[0] || displayName}</span>
+              </h1>
+              {achievements.length > 0 && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 rounded-full">
+                  <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                  <span 
+                    key={currentAchievementIndex}
+                    className="text-xs font-medium text-amber-700 animate-fade-in"
                   >
-                    <div className="flex items-start space-x-3">
-                      <div className={`w-2 h-2 rounded-full mt-2 ${
-                        notification.type === 'warning' ? 'bg-yellow-500' :
-                        notification.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-                      }`}></div>
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-900">{notification.message}</p>
-                        <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="p-3 bg-gray-50">
-                <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium py-2">
-                  View All Notifications
-                </button>
-              </div>
+                    {achievements[currentAchievementIndex]?.name}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
+            <p className="text-sm text-gray-500 mt-0.5">
+              {achievements.length > 0 
+                ? `🏆 ${achievements.length} achievement${achievements.length > 1 ? 's' : ''} unlocked!`
+                : 'Ready to continue your learning journey?'
+              }
+            </p>
+          </div>
+          
+          <div className="md:hidden">
+            <h3 className="text-base font-semibold text-blue-600">Hello, {displayName.split(' ')[0] || displayName}</h3>
+            {achievements.length > 0 && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <Trophy className="w-3 h-3 text-amber-500" />
+                <span className="text-xs text-amber-600">{achievements[currentAchievementIndex]?.name}</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* User Menu */}
-        <div className="relative" ref={menuRef}>
-          <button 
-            onClick={() => setOpen(v => !v)} 
-            aria-haspopup="true" 
-            aria-expanded={open}
-            className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 group"
-          >
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold shadow-md group-hover:shadow-lg transition-shadow duration-200">
-              {initial}
+        {/* Center Search - Desktop */}
+        <div className="hidden md:block flex-1 max-w-2xl mx-8">
+          <div ref={searchRef} className="relative">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search books, authors, or keywords..."
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                onFocus={() => setSearchOpen(true)}
+              />
             </div>
-            <div className="hidden md:block text-left">
-              <p className="text-sm font-semibold text-gray-900">{displayName}</p>
-              <p className="text-xs text-gray-500">{displaySchool}</p>
-            </div>
-            <svg 
-              className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {open && (
-            <div className="absolute right-2 md:right-0 mt-2  max-w-xs md:w-64 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 overflow-hidden">
-              {/* User Info */}
-              <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                    {initial}
-                  </div>
-                  <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900 truncate">{displayName}</p>
-              <p className="text-sm text-gray-600 truncate">{displaySchool}</p>
-                    <p className="text-xs text-gray-500">{user.level}</p>
-                  </div>
+            
+            {searchOpen && (
+              <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                <div className="p-4 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-700">Recent Searches</p>
+                </div>
+                <div className="p-2">
+                  <div className="px-3 py-2 text-sm text-gray-500">Start typing to search...</div>
                 </div>
               </div>
+            )}
+          </div>
+        </div>
 
-              {/* Menu Items */}
-              <div className="py-2">
-                <Link 
-                  to="/dashboard/profile" 
-                  className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors duration-200 group"
-                  onClick={() => setOpen(false)}
-                >
-                  <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span>My Profile</span>
-                </Link>
+        {/* Right Section */}
+        <div className="flex items-center gap-3">
+          
 
-                <Link 
-                  to="/dashboard/settings" 
-                  className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors duration-200 group"
-                  onClick={() => setOpen(false)}
-                >
-                  <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span>Settings</span>
-                </Link>
+          
 
-                <Link 
-                  to="/dashboard/downloads" 
-                  className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors duration-200 group"
-                  onClick={() => setOpen(false)}
-                >
-                  <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span>Downloads</span>
-                </Link>
-
-                <Link 
-                  to="/dashboard/favourites" 
-                  className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors duration-200 group"
-                  onClick={() => setOpen(false)}
-                >
-                  <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                  <span>Favourites</span>
-                </Link>
+          {/* User Menu */}
+          <div className="relative" ref={menuRef}>
+            <button 
+              onClick={() => setOpen(!open)}
+              className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-blue-50 transition-colors duration-200 group"
+              aria-haspopup="true"
+              aria-expanded={open}
+            >
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden">
+                {user.avatarUrl ? (
+                  <img 
+                    src={user.avatarUrl.startsWith('http') ? user.avatarUrl : `${import.meta.env.VITE_BACKEND_URL || ''}${user.avatarUrl}`} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  initial
+                )}
               </div>
-
-              {/* Sign Out */}
-              <div className="border-t border-gray-200 p-2">
-                <button 
-                  onClick={handleSignOut}
-                  className="flex items-center space-x-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 group"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span className="font-medium">Sign Out</span>
-                </button>
+              <div className="hidden md:block text-left">
+                <p className="text-sm font-medium text-blue-600 group-hover:text-blue-700">{displayName}</p>
+                <p className="text-xs text-gray-500 truncate max-w-[120px]">{displaySchool}</p>
               </div>
-            </div>
-          )}
+              <ChevronDown className={`hidden md:block w-4 h-4 text-blue-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+                {/* User Info */}
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden">
+                      {user.avatarUrl ? (
+                        <img 
+                          src={user.avatarUrl.startsWith('http') ? user.avatarUrl : `${import.meta.env.VITE_BACKEND_URL || ''}${user.avatarUrl}`} 
+                          alt="Avatar" 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        initial
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-blue-600 truncate">{displayName}</p>
+                      <p className="text-sm text-blue-500 truncate">{displaySchool}</p>
+                      <p className="text-xs text-gray-500">{user.level}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
+                <div className="py-2">
+                  <Link 
+                    to="/dashboard/profile" 
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 group"
+                    onClick={() => setOpen(false)}
+                  >
+                    <User className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                    <span>Profile</span>
+                  </Link>
+
+                  <Link 
+                    to="/dashboard/settings" 
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 group"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Settings className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                    <span>Settings</span>
+                  </Link>
+
+                  <Link 
+                    to="/dashboard/downloads" 
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 group"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Download className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                    <span>Downloads</span>
+                  </Link>
+
+                  <Link 
+                    to="/dashboard/favourites" 
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 group"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Heart className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                    <span>Favourites</span>
+                  </Link>
+
+                  <Link 
+                    to="/dashboard/support" 
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 group"
+                    onClick={() => setOpen(false)}
+                  >
+                    <HelpCircle className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                    <span>Help & Support</span>
+                  </Link>
+                </div>
+
+                {/* Sign Out */}
+                <div className="border-t border-gray-200 p-2">
+                  <button 
+                    onClick={handleSignOut}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200 group"
+                  >
+                    <LogOut className="w-4 h-4 text-gray-400 group-hover:text-red-600" />
+                    <span className="font-medium">Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </nav>
   )
 }
 
