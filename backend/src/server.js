@@ -89,7 +89,9 @@ async function start() {
     next()
   })
 
-  app.use(express.json());
+  // Increase payload limits for large book metadata and base64 images if needed
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // Session for passport
   app.use(session({

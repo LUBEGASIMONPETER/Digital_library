@@ -20,6 +20,7 @@ import {
   Package,
   Upload,
   Image,
+  Link as LinkIcon,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -582,7 +583,7 @@ const BookCatalog = () => {
 
         {/* Books Grid */}
         {filteredBooks.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-visible">
             {currentBooks.map((book) => (
               <BookCard
                 key={book.id}
@@ -755,7 +756,7 @@ const BookCard = ({ book, selected, onSelect, onDelete, onEdit }) => {
     <div className={`bg-white rounded-lg border transition-all duration-150 ${
       selected ? 'border-gray-800 shadow-md' : 'border-gray-200 hover:shadow-sm hover:border-gray-300'
     }`}>
-      <div className="p-4">
+      <div className="p-4 relative">
         {/* Card Header */}
         <div className="flex items-start justify-between mb-3">
           <input
@@ -773,7 +774,7 @@ const BookCard = ({ book, selected, onSelect, onDelete, onEdit }) => {
             </button>
 
             {showActions && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-30 transform origin-top-right transition-all duration-150 ring-1 ring-black ring-opacity-5">
                 <button 
                   onClick={() => { onEdit(book); setShowActions(false); }}
                   className="flex items-center w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
@@ -890,30 +891,32 @@ const StatCard = ({ title, value, change, trend, icon, iconColor, bgColor }) => 
 
 // Resource Modal (Shared for Add/Edit)
 const ResourceModal = ({ mode, book, onChange, onSubmit, onClose, coverPreview, setCoverPreview, loading }) => {
-  const isPastPaper = book.resourceType === 'past_paper'
-  const title = mode === 'add' ? 'Add New Resource' : 'Edit Resource'
+  const [activeTab, setActiveTab] = useState('details')
 
-  const handleFileChange = (field, file) => {
-    onChange({ ...book, [field]: file, [field === 'coverFile' ? 'coverUrl' : 'fileUrl']: '' })
-    if (field === 'coverFile' && file) {
-      const url = URL.createObjectURL(file)
-      setCoverPreview(url)
+  const handleFileChange = (type, file) => {
+    if (file) {
+      onChange({ ...book, [type]: file })
+      if (type === 'coverFile') {
+        const reader = new FileReader()
+        reader.onloadend = () => setCoverPreview(reader.result)
+        reader.readAsDataURL(file)
+      }
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              {mode === 'add' ? <Plus className="w-5 h-5 text-gray-700" /> : <Edit2 className="w-5 h-5 text-gray-700" />}
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-              <p className="text-sm text-gray-600">Fill in the resource details</p>
-            </div>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-2xl w-full my-8">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {mode === 'add' ? 'Add New Resource' : 'Edit Resource'}
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Fill in the resource information below</p>
           </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
         </div>
 
         <form onSubmit={onSubmit} className="p-6 space-y-6">
@@ -1093,63 +1096,106 @@ const ResourceModal = ({ mode, book, onChange, onSubmit, onClose, coverPreview, 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
-                <div className="flex flex-col items-center">
-                  <Image className="w-8 h-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 mb-2">Upload cover image</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange('coverFile', e.target.files[0])}
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">or enter URL below</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+                  <div className="flex flex-col items-center">
+                    <Image className="w-8 h-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">Upload cover image</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange('coverFile', e.target.files[0])}
+                      className="text-sm cursor-pointer"
+                    />
+                    {book.coverFile && (
+                      <p className="text-xs text-green-600 mt-2 font-medium">✓ File selected: {book.coverFile.name}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex flex-col justify-center">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <LinkIcon className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="url"
+                      value={book.coverUrl || ''}
+                      onChange={(e) => onChange({...book, coverUrl: e.target.value, coverFile: null})}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 outline-none"
+                      placeholder="Or paste cover URL here..."
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-2">Use URLs for fast loading or if image is hosted elsewhere.</p>
                 </div>
               </div>
-              {book.coverUrl && !book.coverFile && (
-                <input
-                  type="url"
-                  value={book.coverUrl}
-                  onChange={(e) => onChange({...book, coverUrl: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg mt-2"
-                  placeholder="Cover image URL"
-                />
-              )}
+              
               {coverPreview && (
-                <div className="mt-2">
-                  <p className="text-xs text-gray-500 mb-1">Preview:</p>
-                  <img src={coverPreview} alt="preview" className="w-32 h-40 object-cover rounded" />
+                <div className="mt-4 flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <img src={coverPreview} alt="preview" className="w-16 h-20 object-cover rounded shadow-sm" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Cover Preview</p>
+                    <p className="text-xs text-gray-500">How the book will appear</p>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setCoverPreview('')
+                      onChange({...book, coverFile: null, coverUrl: ''})
+                    }}
+                    className="ml-auto text-xs text-red-600 hover:text-red-700 font-medium"
+                  >
+                    Clear
+                  </button>
                 </div>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Resource File</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
-                <div className="flex flex-col items-center">
-                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 mb-2">Upload {book.resourceType === 'past_paper' ? 'past paper' : 'book'} file</p>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => handleFileChange('bookFile', e.target.files[0])}
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">PDF, DOC, DOCX formats</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+                  <div className="flex flex-col items-center">
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">Upload PDF/Doc</p>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={(e) => handleFileChange('bookFile', e.target.files[0])}
+                      className="text-sm cursor-pointer"
+                    />
+                    {book.bookFile && (
+                      <p className="text-xs text-green-600 mt-2 font-medium">✓ File selected: {book.bookFile.name}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-center">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <LinkIcon className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="url"
+                      value={book.fileUrl || ''}
+                      onChange={(e) => onChange({...book, fileUrl: e.target.value, bookFile: null})}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 outline-none"
+                      placeholder="Or paste file URL here..."
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-2">Required for resources hosted on Google Drive, Dropbox, etc.</p>
                 </div>
               </div>
-              {book.fileUrl && !book.bookFile && (
-                <input
-                  type="url"
-                  value={book.fileUrl}
-                  onChange={(e) => onChange({...book, fileUrl: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg mt-2"
-                  placeholder="File URL"
-                />
-              )}
+              
               {book.bookFile && (
-                <div className="mt-2 text-sm text-gray-600">
-                  Selected: <span className="font-medium">{book.bookFile.name}</span> ({(book.bookFile.size/1024).toFixed(0)} KB)
+                <div className="mt-2 text-sm text-gray-600 flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-100">
+                  <div className="flex items-center">
+                    <FileText className="w-4 h-4 mr-2 text-blue-500" />
+                    <span>{book.bookFile.name} ({(book.bookFile.size/1024).toFixed(0)} KB)</span>
+                  </div>
+                  <button type="button" onClick={() => onChange({...book, bookFile: null})} className="text-blue-600 hover:text-blue-800">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               )}
             </div>

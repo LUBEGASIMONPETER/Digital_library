@@ -43,27 +43,36 @@ const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }) // 50
 // helper to upload buffer to Cloudinary with timeout, returns upload result
 function uploadBufferToCloudinary(buffer, options = {}) {
   return new Promise((resolve, reject) => {
-    // Set a 60 second timeout for the upload
+    // Increased timeout to 120 seconds to prevent 502 Bad Gateway on larger files / slow connections
+    const UPLOAD_TIMEOUT = 120000;
     const timeout = setTimeout(() => {
-      reject(new Error('Cloudinary upload timeout after 60 seconds'))
-    }, 60000)
+      console.error(`Cloudinary upload timeout after ${UPLOAD_TIMEOUT/1000} seconds`);
+      reject(new Error(`Cloudinary upload timeout after ${UPLOAD_TIMEOUT/1000} seconds`))
+    }, UPLOAD_TIMEOUT)
 
     try {
+      console.log(`Starting Cloudinary upload stream (folder: ${options.folder}, type: ${options.resource_type || 'auto'})...`);
       const stream = cloudinary.uploader.upload_stream(
-        { ...options, timeout: 60000 },
+        { ...options, timeout: UPLOAD_TIMEOUT },
         (error, result) => {
           clearTimeout(timeout)
-          if (error) return reject(error)
+          if (error) {
+            console.error('Cloudinary stream error callback:', error);
+            return reject(error)
+          }
+          console.log('Cloudinary upload successful:', result.secure_url);
           resolve(result)
         }
       )
       stream.on('error', (err) => {
         clearTimeout(timeout)
+        console.error('Cloudinary stream "error" event:', err);
         reject(err)
       })
       stream.end(buffer)
     } catch (err) {
       clearTimeout(timeout)
+      console.error('Cloudinary stream fatal exception:', err);
       reject(err)
     }
   })
@@ -553,6 +562,7 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
     // handle uploaded cover image (if provided)
     if (req.files && req.files.cover && req.files.cover[0]) {
       const coverFile = req.files.cover[0]
+      console.log(`Processing cover upload: ${coverFile.originalname} (${(coverFile.size / 1024).toFixed(2)} KB)`);
       // if Cloudinary is not configured, we cannot accept binary uploads
       if (!CLOUDINARY_CONFIGURED) {
         // fallback: write the file to local uploads folder and expose via /uploads
@@ -575,8 +585,11 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
           const result = await uploadBufferToCloudinary(coverFile.buffer, { resource_type: 'image', folder: 'dlibrary/covers' })
           coverUrl = result && result.secure_url ? result.secure_url : coverUrl
         } catch (uplErr) {
-          console.error('Cloudinary cover upload failed', uplErr)
-          const resp = { message: 'Failed to upload cover image', error: uplErr.message || String(uplErr) }
+          console.error('Cloudinary cover upload failed:', uplErr)
+          const resp = { 
+            message: 'Failed to upload cover image. The file might be too large or the connection timed out.', 
+            error: uplErr.message || String(uplErr) 
+          }
           if (process.env.DEBUG_UPLOADS === 'true') resp.stack = uplErr.stack || String(uplErr)
           return res.status(502).json(resp)
         }
@@ -588,6 +601,7 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
     // handle uploaded book file (pdf) (if provided)
     if (req.files && req.files.file && req.files.file[0]) {
       const bookFile = req.files.file[0]
+      console.log(`Processing resource upload: ${bookFile.originalname} (${(bookFile.size / (1024 * 1024)).toFixed(2)} MB)`);
       if (!CLOUDINARY_CONFIGURED) {
         // fallback: save file locally
         try {
@@ -609,9 +623,8 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
           const result = await uploadBufferToCloudinary(bookFile.buffer, { resource_type: 'raw', folder: 'dlibrary/books' })
           fileUrl = result && result.secure_url ? result.secure_url : fileUrl
           } catch (uplErr) {
-          console.error('Cloudinary book file upload failed', uplErr)
+          console.error('Cloudinary book file upload failed:', uplErr)
           // fallback to local storage if cloudinary fails
-          // capture error info for debug responses when enabled
           const cloudErrInfo = { message: uplErr.message || String(uplErr) }
           if (process.env.DEBUG_UPLOADS === 'true') cloudErrInfo.stack = uplErr.stack || String(uplErr)
           try {
@@ -622,9 +635,7 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
             console.warn('Fell back to local book file storage due to Cloudinary error')
           } catch (fsErr) {
             console.error('Fallback local write for book file also failed', fsErr)
-            const resp = { message: 'Failed to upload book file', error: cloudErrInfo.message }
-            if (process.env.DEBUG_UPLOADS === 'true') resp.cloudinary = cloudErrInfo, resp.stack = (fsErr && fsErr.stack) ? fsErr.stack : String(fsErr)
-            return res.status(502).json(resp)
+            return res.status(502).json({ message: 'Failed to upload book file', error: cloudErrInfo.message })
           }
         }
       }
@@ -735,6 +746,7 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
     // handle uploaded cover image (if provided)
     if (req.files && req.files.cover && req.files.cover[0]) {
       const coverFile = req.files.cover[0]
+      console.log(`Processing cover upload: ${coverFile.originalname} (${(coverFile.size / 1024).toFixed(2)} KB)`);
       if (!CLOUDINARY_CONFIGURED) {
         try {
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${coverFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
@@ -754,7 +766,7 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
           const result = await uploadBufferToCloudinary(coverFile.buffer, { resource_type: 'image', folder: 'dlibrary/covers' })
           book.coverUrl = result && result.secure_url ? result.secure_url : book.coverUrl
         } catch (uplErr) {
-          console.error('Cloudinary cover upload failed', uplErr)
+          console.error('Cloudinary cover upload failed:', uplErr)
           // fallback: write locally
           try {
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${coverFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
@@ -775,6 +787,7 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
     // handle uploaded book file (pdf) (if provided)
     if (req.files && req.files.file && req.files.file[0]) {
       const bookFile = req.files.file[0]
+      console.log(`Processing resource upload: ${bookFile.originalname} (${(bookFile.size / (1024 * 1024)).toFixed(2)} MB)`);
       if (!CLOUDINARY_CONFIGURED) {
         try {
           const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${bookFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
@@ -792,7 +805,7 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
           const result = await uploadBufferToCloudinary(bookFile.buffer, { resource_type: 'raw', folder: 'dlibrary/books' })
           book.fileUrl = result && result.secure_url ? result.secure_url : book.fileUrl
         } catch (uplErr) {
-          console.error('Cloudinary book file upload failed', uplErr)
+          console.error('Cloudinary book file upload failed:', uplErr)
           try {
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${bookFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`
             const localPath = await writeBufferToUploads(bookFile.buffer, 'books', filename)
