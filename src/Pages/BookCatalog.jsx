@@ -906,325 +906,361 @@ const ResourceModal = ({ mode, book, onChange, onSubmit, onClose, coverPreview, 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-xl max-w-2xl w-full my-8">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl max-w-2xl w-full flex flex-col max-h-[92vh] shadow-2xl">
+        {/* Header - Sticky */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 shrink-0">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-bold text-gray-900">
               {mode === 'add' ? 'Add New Resource' : 'Edit Resource'}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">Fill in the resource information below</p>
+            <p className="text-sm text-gray-500 mt-0.5">Fill in the resource information below</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="p-6 space-y-6">
-          {/* Resource Type Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Resource Type *</label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {RESOURCE_TYPES.map(type => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => onChange({ ...book, resourceType: type })}
-                  className={`p-3 rounded-lg border transition-colors ${
-                    book.resourceType === type 
-                      ? 'bg-gray-800 text-white border-gray-800' 
-                      : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="text-xs font-medium">{RESOURCE_TYPE_LABELS[type]}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-              <input
-                type="text"
-                required
-                value={book.title}
-                onChange={(e) => onChange({...book, title: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
-                placeholder="Enter resource title"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Author *</label>
-              <input
-                type="text"
-                required
-                value={book.author}
-                onChange={(e) => onChange({...book, author: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
-                placeholder="Enter author name"
-              />
-            </div>
-
-            {isPastPaper && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Exam Year *</label>
-                  <input
-                    type="number"
-                    required
-                    value={book.examYear}
-                    onChange={(e) => onChange({...book, examYear: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
-                    placeholder="e.g., 2023"
-                    min="1900"
-                    max={new Date().getFullYear()}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Exam Board *</label>
-                  <select
-                    required
-                    value={book.examBoard}
-                    onChange={(e) => onChange({...book, examBoard: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
+        <form onSubmit={onSubmit} className="flex flex-col overflow-hidden">
+          {/* Form Body - Scrollable */}
+          <div className="p-6 space-y-8 overflow-y-auto custom-scrollbar flex-1">
+            {/* Resource Type Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Package className="w-4 h-4 text-gray-400" />
+                Resource Type <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {RESOURCE_TYPES.map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => onChange({ ...book, resourceType: type })}
+                    className={`p-2.5 rounded-xl border-2 transition-all text-center ${
+                      book.resourceType === type 
+                        ? 'bg-gray-900 text-white border-gray-900 shadow-lg scale-[1.02]' 
+                        : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50 text-gray-600'
+                    }`}
                   >
-                    <option value="UNEB">UNEB (Uganda)</option>
-                    <option value="UCE">UCE</option>
-                    <option value="UACE">UACE</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-              </>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">ISBN</label>
-              <input
-                type="text"
-                value={book.isbn}
-                onChange={(e) => onChange({...book, isbn: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
-                placeholder="Enter ISBN"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category (A-Level subject) *</label>
-              <select
-                required
-                value={book.category}
-                onChange={(e) => onChange({...book, category: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
-              >
-                <option value="">Select A-Level subject</option>
-                {A_LEVEL_SUBJECTS.map(sub => (
-                  <option key={sub} value={sub}>{sub}</option>
+                    <div className="text-[11px] font-bold uppercase tracking-wider">{RESOURCE_TYPE_LABELS[type]}</div>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Publisher</label>
-              <input
-                type="text"
-                value={book.publisher}
-                onChange={(e) => onChange({...book, publisher: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
-                placeholder="Enter publisher"
-              />
-            </div>
+            {/* Basic Info Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={book.title}
+                  onChange={(e) => onChange({...book, title: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                  placeholder="e.g., Advanced Biology"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Published Year</label>
-              <input
-                type="number"
-                value={book.publishedYear}
-                onChange={(e) => onChange({...book, publishedYear: parseInt(e.target.value)})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
-                min="1000"
-                max={new Date().getFullYear()}
-              />
-            </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Author *</label>
+                <input
+                  type="text"
+                  required
+                  value={book.author}
+                  onChange={(e) => onChange({...book, author: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                  placeholder="Author name"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Total Copies *</label>
-              <input
-                type="number"
-                required
-                value={book.totalCopies}
-                onChange={(e) => {
-                  const total = parseInt(e.target.value)
-                  onChange({
-                    ...book,
-                    totalCopies: total,
-                    availableCopies: Math.min(book.availableCopies, total)
-                  })
-                }}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
-                min="1"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Available Copies *</label>
-              <input
-                type="number"
-                required
-                value={book.availableCopies}
-                onChange={(e) => onChange({...book, availableCopies: parseInt(e.target.value)})}
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
-                min="0"
-                max={book.totalCopies}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea
-              value={book.description}
-              onChange={(e) => onChange({...book, description: e.target.value})}
-              rows="3"
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800 resize-none"
-              placeholder="Enter resource description"
-            />
-          </div>
-
-          {/* File Uploads */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
-                  <div className="flex flex-col items-center">
-                    <Image className="w-8 h-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">Upload cover image</p>
+              {isPastPaper && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">Exam Year *</label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange('coverFile', e.target.files[0])}
-                      className="text-sm cursor-pointer"
+                      type="number"
+                      required
+                      value={book.examYear}
+                      onChange={(e) => onChange({...book, examYear: e.target.value})}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white"
+                      placeholder="2023"
+                      min="1900"
+                      max={new Date().getFullYear()}
                     />
-                    {book.coverFile && (
-                      <p className="text-xs text-green-600 mt-2 font-medium">✓ File selected: {book.coverFile.name}</p>
-                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">Exam Board *</label>
+                    <select
+                      required
+                      value={book.examBoard}
+                      onChange={(e) => onChange({...book, examBoard: e.target.value})}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white appearance-none cursor-pointer"
+                    >
+                      <option value="UNEB">UNEB (Uganda)</option>
+                      <option value="UCE">UCE</option>
+                      <option value="UACE">UACE</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">ISBN</label>
+                <input
+                  type="text"
+                  value={book.isbn}
+                  onChange={(e) => onChange({...book, isbn: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white"
+                  placeholder="ISBN number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Category *</label>
+                <select
+                  required
+                  value={book.category}
+                  onChange={(e) => onChange({...book, category: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white appearance-none cursor-pointer"
+                >
+                  <option value="">Select subject</option>
+                  {A_LEVEL_SUBJECTS.map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Publisher</label>
+                <input
+                  type="text"
+                  value={book.publisher}
+                  onChange={(e) => onChange({...book, publisher: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white"
+                  placeholder="Name of publisher"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Published Year</label>
+                <input
+                  type="number"
+                  value={book.publishedYear}
+                  onChange={(e) => onChange({...book, publishedYear: parseInt(e.target.value)})}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white"
+                  min="1000"
+                  max={new Date().getFullYear()}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Total Copies *</label>
+                <input
+                  type="number"
+                  required
+                  value={book.totalCopies}
+                  onChange={(e) => {
+                    const total = parseInt(e.target.value)
+                    onChange({
+                      ...book,
+                      totalCopies: total,
+                      availableCopies: Math.min(book.availableCopies, total)
+                    })
+                  }}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white"
+                  min="1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700">Available Copies *</label>
+                <input
+                  type="number"
+                  required
+                  value={book.availableCopies}
+                  onChange={(e) => onChange({...book, availableCopies: parseInt(e.target.value)})}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white"
+                  min="0"
+                  max={book.totalCopies}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Description</label>
+              <textarea
+                value={book.description}
+                onChange={(e) => onChange({...book, description: e.target.value})}
+                rows="3"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white resize-none"
+                placeholder="Briefly describe the resource..."
+              />
+            </div>
+
+            {/* File Uploads */}
+            <div className="grid grid-cols-1 gap-8">
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Image className="w-4 h-4 text-emerald-500" />
+                  Cover Image
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="relative flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-2xl p-4 hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer h-32 group">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange('coverFile', e.target.files[0])}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <Image className="w-8 h-8 text-gray-300 mb-2 group-hover:scale-110 group-hover:text-emerald-400 transition-all" />
+                      <p className="text-xs font-bold text-gray-500 group-hover:text-emerald-700 transition-colors">Select Image</p>
+                      {book.coverFile && (
+                        <div className="absolute inset-0 bg-emerald-50/95 rounded-2xl flex items-center justify-center p-2 text-center animate-in fade-in">
+                          <p className="text-xs text-emerald-700 font-bold truncate px-3">
+                            ✓ {book.coverFile.name}
+                          </p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                  
+                  <div className="md:col-span-3 flex flex-col justify-center space-y-2">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <LinkIcon className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <input
+                        type="url"
+                        value={book.coverUrl || ""}
+                        onChange={(e) => onChange({...book, coverUrl: e.target.value, coverFile: null})}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+                        placeholder="Or paste image URL"
+                      />
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex flex-col justify-center">
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <LinkIcon className="h-4 w-4 text-gray-400" />
+                {coverPreview && (
+                  <div className="mt-2 flex items-center gap-4 p-3 bg-gray-50 rounded-2xl border border-gray-100 animate-in slide-in-from-top-2">
+                    <img src={coverPreview} alt="preview" className="w-10 h-14 object-cover rounded-lg shadow-sm" />
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-gray-900 uppercase tracking-tighter">Preview</p>
+                      <p className="text-[10px] text-gray-500">Visible to users</p>
                     </div>
-                    <input
-                      type="url"
-                      value={book.coverUrl || ''}
-                      onChange={(e) => onChange({...book, coverUrl: e.target.value, coverFile: null})}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 outline-none"
-                      placeholder="Or paste cover URL here..."
-                    />
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setCoverPreview("")
+                        onChange({...book, coverFile: null, coverUrl: ""})
+                      }}
+                      className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-2">Use URLs for fast loading or if image is hosted elsewhere.</p>
-                </div>
+                )}
               </div>
-              
-              {coverPreview && (
-                <div className="mt-4 flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <img src={coverPreview} alt="preview" className="w-16 h-20 object-cover rounded shadow-sm" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Cover Preview</p>
-                    <p className="text-xs text-gray-500">How the book will appear</p>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      setCoverPreview('')
-                      onChange({...book, coverFile: null, coverUrl: ''})
-                    }}
-                    className="ml-auto text-xs text-red-600 hover:text-red-700 font-medium"
-                  >
-                    Clear
-                  </button>
-                </div>
-              )}
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Resource File</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
-                  <div className="flex flex-col items-center">
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">Upload PDF/Doc</p>
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) => handleFileChange('bookFile', e.target.files[0])}
-                      className="text-sm cursor-pointer"
-                    />
-                    {book.bookFile && (
-                      <p className="text-xs text-green-600 mt-2 font-medium">✓ File selected: {book.bookFile.name}</p>
-                    )}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-blue-500" />
+                  Resource File
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="relative flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-2xl p-4 hover:border-blue-400 hover:bg-blue-50/30 transition-all cursor-pointer h-32 group">
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={(e) => handleFileChange('bookFile', e.target.files[0])}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <FileArchive className="w-8 h-8 text-gray-300 mb-2 group-hover:scale-110 group-hover:text-blue-400 transition-all" />
+                      <p className="text-xs font-bold text-gray-500 group-hover:text-blue-700 transition-colors">Select PDF/Doc</p>
+                      {book.bookFile && (
+                        <div className="absolute inset-0 bg-blue-50/95 rounded-2xl flex items-center justify-center p-2 text-center animate-in fade-in">
+                          <p className="text-xs text-blue-700 font-bold truncate px-3">
+                            ✓ {book.bookFile.name}
+                          </p>
+                        </div>
+                      )}
+                    </label>
                   </div>
-                </div>
 
-                <div className="flex flex-col justify-center">
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <LinkIcon className="h-4 w-4 text-gray-400" />
+                  <div className="md:col-span-3 flex flex-col justify-center space-y-2">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <LinkIcon className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <input
+                        type="url"
+                        value={book.fileUrl || ""}
+                        onChange={(e) => onChange({...book, fileUrl: e.target.value, bookFile: null})}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+                        placeholder="Or paste direct download link"
+                      />
                     </div>
-                    <input
-                      type="url"
-                      value={book.fileUrl || ''}
-                      onChange={(e) => onChange({...book, fileUrl: e.target.value, bookFile: null})}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-800 outline-none"
-                      placeholder="Or paste file URL here..."
-                    />
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-2">Required for resources hosted on Google Drive, Dropbox, etc.</p>
                 </div>
+                
+                {book.bookFile && (
+                  <div className="mt-2 text-sm text-gray-600 flex items-center justify-between p-3 bg-blue-50 rounded-2xl border border-blue-100 animate-in slide-in-from-top-2">
+                    <div className="flex items-center min-w-0">
+                      <FileText className="w-4 h-4 mr-3 text-blue-500 shrink-0" />
+                      <span className="truncate font-medium">{book.bookFile.name}</span>
+                      <span className="ml-2 text-[10px] text-blue-400">({(book.bookFile.size/1024).toFixed(0)} KB)</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => onChange({...book, bookFile: null})} 
+                      className="ml-2 p-1 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
-              
-              {book.bookFile && (
-                <div className="mt-2 text-sm text-gray-600 flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-100">
-                  <div className="flex items-center">
-                    <FileText className="w-4 h-4 mr-2 text-blue-500" />
-                    <span>{book.bookFile.name} ({(book.bookFile.size/1024).toFixed(0)} KB)</span>
-                  </div>
-                  <button type="button" onClick={() => onChange({...book, bookFile: null})} className="text-blue-600 hover:text-blue-800">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          {/* Footer - Sticky Actions */}
+          <div className="p-6 border-t border-gray-100 flex gap-4 bg-gray-50/50 shrink-0">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium disabled:opacity-50"
+              className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 rounded-xl hover:bg-white hover:border-gray-300 transition-all font-bold text-sm disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-[2] px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-black hover:shadow-lg transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
-                <div className="flex items-center justify-center gap-2">
+                <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Uploading...
-                </div>
+                  Processing...
+                </>
               ) : mode === 'add' ? (
-                'Add Resource'
+                <>
+                  <Plus className="w-4 h-4" />
+                  Add Resource
+                </>
               ) : (
-                'Update Resource'
+                <>
+                  <Check className="w-4 h-4" />
+                  Save Changes
+                </>
               )}
             </button>
           </div>

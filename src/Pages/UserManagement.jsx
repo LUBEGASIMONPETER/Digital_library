@@ -42,7 +42,7 @@ const UserManagement = () => {
   const [selectedUsers, setSelectedUsers] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [usersPerPage] = useState(10)
-  
+
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportMessage, setExportMessage] = useState('')
