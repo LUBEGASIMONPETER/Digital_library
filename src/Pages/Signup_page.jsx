@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Link } from 'react-router-dom'
-import { apiFetch } from '../lib/api'
+import { apiFetch, apiBase } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -43,7 +43,7 @@ const Signup_page = () => {
   const handleGoogleSignup = () => {
     setSubmitting(true)
     // Redirect to backend Google OAuth endpoint
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    const backendUrl = apiBase() || 'http://localhost:5000'
     window.location.href = `${backendUrl}/api/auth/google`
   }
 

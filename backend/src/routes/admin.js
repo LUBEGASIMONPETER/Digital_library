@@ -585,9 +585,13 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
           const result = await uploadBufferToCloudinary(coverFile.buffer, { resource_type: 'image', folder: 'dlibrary/covers' })
           coverUrl = result && result.secure_url ? result.secure_url : coverUrl
         } catch (uplErr) {
-          console.error('Cloudinary cover upload failed:', uplErr)
+          console.error('Cloudinary cover upload failed details:', {
+            message: uplErr.message,
+            code: uplErr.http_code || uplErr.code,
+            name: uplErr.name
+          })
           const resp = { 
-            message: 'Failed to upload cover image. The file might be too large or the connection timed out.', 
+            message: 'Failed to upload cover image. Cloudinary error or connection timeout.', 
             error: uplErr.message || String(uplErr) 
           }
           if (process.env.DEBUG_UPLOADS === 'true') resp.stack = uplErr.stack || String(uplErr)

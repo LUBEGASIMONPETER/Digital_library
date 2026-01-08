@@ -1,6 +1,6 @@
 export function apiBase() {
-  const raw = import.meta.env.VITE_BACKEND_URL || ''
-  return String(raw).replace(/\/$/, '')
+  const raw = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || ""
+  return String(raw).replace(/\/$/, "")
 }
 
 export async function apiFetch(path, options = {}) {
@@ -29,7 +29,7 @@ export async function apiFetch(path, options = {}) {
 
   // Add timeout to prevent hanging requests
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minute timeout
   
   try {
     const response = await fetch(url, {

@@ -35,7 +35,7 @@ router.get('/google', (req, res, next) => {
 // GET /api/auth/google/callback - Google OAuth callback
 router.get('/google/callback', 
   passport.authenticate('google', { 
-    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/login?error=google_auth_failed`,
+    failureRedirect: `${process.env.FRONTEND_URL || 'https://thedigitallibrarynewapp.netlify.app'}/auth/login?error=google_auth_failed`,
     session: false 
   }),
   (req, res) => {
@@ -52,7 +52,7 @@ router.get('/google/callback',
       );
 
       // Redirect to frontend with token
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://thedigitallibrarynewapp.netlify.app';
       const redirectUrl = req.user.role === 'admin' 
         ? `${frontendUrl}/admin?token=${token}`
         : `${frontendUrl}/dashboard?token=${token}`;
@@ -60,7 +60,7 @@ router.get('/google/callback',
       res.redirect(redirectUrl);
     } catch (err) {
       console.error('Google callback error:', err);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://thedigitallibrarynewapp.netlify.app';
       res.redirect(`${frontendUrl}/auth/login?error=auth_failed`);
     }
   }

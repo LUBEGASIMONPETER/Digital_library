@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
+import { apiBase } from '../lib/api'
+
 const AuthContext = createContext(null)
 
 // Helper to extract token from URL
@@ -49,7 +51,7 @@ export function AuthProvider({ children }) {
           
           if (decoded && decoded.id) {
             // Fetch full user profile from backend
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+            const apiUrl = apiBase() || 'http://localhost:5000'
             const res = await fetch(`${apiUrl}/api/users/profile`, {
               headers: {
                 'Authorization': `Bearer ${urlToken}`,

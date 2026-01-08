@@ -16,6 +16,9 @@ const { requireAuth } = require('../middleware/auth')
 // Seed achievements on startup
 seedAchievements();
 
+// Protected all user routes
+router.use(requireAuth);
+
 // multer memory storage for small files, we'll stream to Cloudinary
 const storage = multer.memoryStorage()
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }) // 10MB limit for avatars

@@ -20,7 +20,7 @@ passport.deserializeUser(async (id, done) => {
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   const callbackURL = process.env.GOOGLE_CALLBACK_URL || 
     (process.env.NODE_ENV === 'production' 
-      ? 'https://your-backend-domain.com/api/auth/google/callback'
+      ? 'https://digital-library-fqqr.onrender.com/api/auth/google/callback'
       : 'http://localhost:5000/api/auth/google/callback');
 
   passport.use(new GoogleStrategy({
