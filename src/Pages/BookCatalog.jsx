@@ -892,6 +892,7 @@ const StatCard = ({ title, value, change, trend, icon, iconColor, bgColor }) => 
 // Resource Modal (Shared for Add/Edit)
 const ResourceModal = ({ mode, book, onChange, onSubmit, onClose, coverPreview, setCoverPreview, loading }) => {
   const [activeTab, setActiveTab] = useState('details')
+  const isPastPaper = book.resourceType === 'past_paper'
 
   const handleFileChange = (type, file) => {
     if (file) {

@@ -14,8 +14,9 @@ export async function apiFetch(path, options = {}) {
     const authUser = localStorage.getItem('auth_user')
     if (authUser) {
       const user = JSON.parse(authUser)
-      if (user && user.id) {
-        headers['X-User-ID'] = user.id
+      const userId = user.id || user._id
+      if (userId) {
+        headers['X-User-ID'] = userId
       }
       // Add JWT token if available (for OAuth users)
       if (user && user.token) {
