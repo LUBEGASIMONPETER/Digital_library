@@ -287,14 +287,24 @@ async function sendGenericEmail(to, subject, html) {
     // Format sender with display name: "The Digital Library <email@example.com>"
     const senderEmail = process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@digitallibrary.com'
     const senderName = 'The Digital Library'
-    const from = `${senderName} <${senderEmail}>`
+    const from = `"${senderName}" <${senderEmail}>`
     
     try {
         const info = await sendWithProvider({
             from,
             to,
             subject,
-            html
+            html,
+            headers: {
+                'X-Mailer': 'The Digital Library Notification System',
+                'X-Priority': '3',
+                'X-MSMail-Priority': 'Normal',
+                'Importance': 'Normal',
+                'List-Unsubscribe': `<mailto:${senderEmail}?subject=unsubscribe>`,
+                'Reply-To': senderEmail
+            },
+            // Add text version to improve deliverability
+            text: html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
         });
         console.log(`Email sent successfully to ${to}: ${subject}`);
         return info;

@@ -40,8 +40,8 @@ const AdminSidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse 
         />
       )}
       
-      <aside className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-200 transform transition-all duration-300 ease-in-out ${mobileTransformClass} md:translate-x-0 ${desktopWidthClass}`} style={{ overflow: 'visible' }}>
-        <div className="h-full flex flex-col overflow-hidden">
+      <aside className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-200 transform transition-all duration-300 ease-in-out ${mobileTransformClass} md:translate-x-0 ${desktopWidthClass}`}>
+        <div className="h-full flex flex-col">
           {/* Header */}
           <div className={`flex items-center p-6 border-b border-gray-200 ${collapsed ? 'justify-center' : 'justify-between'}`}>
             {!collapsed && (
@@ -145,33 +145,64 @@ const AdminSidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse 
 }
 
 function AdminLink({ to, label, icon: Icon, collapsed, isActive, isReturn = false }) {
+  const [showTooltip, setShowTooltip] = React.useState(false)
+  const linkRef = React.useRef(null)
+  const [tooltipPos, setTooltipPos] = React.useState({ top: 0, left: 0 })
+
+  const handleMouseEnter = () => {
+    if (collapsed && linkRef.current) {
+      const rect = linkRef.current.getBoundingClientRect()
+      setTooltipPos({
+        top: rect.top + rect.height / 2,
+        left: rect.right + 8
+      })
+      setShowTooltip(true)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false)
+  }
+
   return (
-    <Link 
-      to={to} 
-      className={`flex items-center p-3 rounded-lg transition-all duration-200 group relative ${
-        isActive 
-          ? 'bg-gray-100 text-gray-900' 
-          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-      } ${collapsed ? 'justify-center px-3' : 'px-4'} ${isReturn ? 'mt-4 bg-blue-50 hover:bg-blue-100 text-blue-700' : ''}`}
-    >
-      <div className={`${isReturn ? 'text-blue-600' : isActive ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'} ${collapsed ? '' : 'mr-3'}`}>
-        <Icon className="w-5 h-5" />
-      </div>
+    <>
+      <Link 
+        ref={linkRef}
+        to={to}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`flex items-center p-3 rounded-lg transition-all duration-200 group relative ${
+          isActive 
+            ? 'bg-gray-100 text-gray-900' 
+            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        } ${collapsed ? 'justify-center px-3' : 'px-4'} ${isReturn ? 'mt-4 bg-blue-50 hover:bg-blue-100 text-blue-700' : ''}`}
+      >
+        <div className={`${isReturn ? 'text-blue-600' : isActive ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'} ${collapsed ? '' : 'mr-3'}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        
+        {!collapsed && (
+          <>
+            <span className="font-medium text-sm flex-1">{label}</span>
+          </>
+        )}
+      </Link>
       
-      {!collapsed && (
-        <>
-          <span className="font-medium text-sm flex-1">{label}</span>
-        </>
-      )}
-      
-      {/* Tooltip for collapsed state */}
-      {collapsed && (
-        <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-[9999] shadow-lg pointer-events-none">
+      {/* Tooltip rendered in a fixed portal outside the sidebar */}
+      {collapsed && showTooltip && (
+        <div 
+          className="fixed px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg whitespace-nowrap z-[99999] pointer-events-none"
+          style={{
+            top: `${tooltipPos.top}px`,
+            left: `${tooltipPos.left}px`,
+            transform: 'translateY(-50%)'
+          }}
+        >
           {label}
-          <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-0 h-0 border-t-4 border-b-4 border-l-0 border-r-4 border-r-gray-900 border-t-transparent border-b-transparent border-l-transparent"></div>
+          <div className="absolute right-full top-1/2 transform -translate-y-1/2 mr-[-4px] w-0 h-0 border-t-4 border-b-4 border-r-4 border-r-gray-900 border-t-transparent border-b-transparent"></div>
         </div>
       )}
-    </Link>
+    </>
   )
 }
 

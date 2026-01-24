@@ -61,6 +61,7 @@ export function AuthProvider({ children }) {
               token: urlToken
             }
             setUser(userFromToken)
+            localStorage.setItem('auth_user', JSON.stringify(userFromToken))
             
             // Fetch full user profile from backend to get complete data
             try {
@@ -77,18 +78,20 @@ export function AuthProvider({ children }) {
                 const userWithId = { ...userData, id: userData._id || userData.id || decoded.id, token: urlToken }
                 console.log('Full user profile loaded:', userWithId.email)
                 setUser(userWithId)
+                localStorage.setItem('auth_user', JSON.stringify(userWithId))
               } else {
-                console.warn('Failed to fetch full profile, status:', res.status)
+                console.warn('Failed to fetch full profile, status:', res.status, '- keeping token user data')
+                // Keep the user from decoded token - already set above
               }
             } catch (profileErr) {
               console.error('Failed to fetch full profile, using decoded token data:', profileErr)
-              // Keep the user from decoded token
+              // Keep the user from decoded token - already set above
             }
           } else {
             console.error('Invalid token - could not decode')
           }
           
-          // Clean the URL (remove token parameter)
+          // Clean the URL (remove token parameter) - do this AFTER setting user
           const cleanUrl = window.location.pathname
           window.history.replaceState({}, document.title, cleanUrl)
         } else {
@@ -105,12 +108,18 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    if (!loading) {
+    // Only sync to localStorage for manual setUser calls (not during initial load)
+    if (!loading && user && !getTokenFromUrl()) {
       try {
-        if (user) localStorage.setItem('auth_user', JSON.stringify(user))
-        else localStorage.removeItem('auth_user')
+        localStorage.setItem('auth_user', JSON.stringify(user))
       } catch (err) {
         console.error('Failed to persist auth_user', err)
+      }
+    } else if (!loading && !user) {
+      try {
+        localStorage.removeItem('auth_user')
+      } catch (err) {
+        console.error('Failed to remove auth_user', err)
       }
     }
   }, [user, loading])
