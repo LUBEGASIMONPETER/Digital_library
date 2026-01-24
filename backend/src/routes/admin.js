@@ -268,16 +268,30 @@ router.get('/dashboard-stats', async (req, res) => {
     const verifiedUsers = await User.countDocuments({ isVerified: true, isDeleted: { $ne: true } });
     const totalBooks = await Book.countDocuments({});
     
-    // Aggregating borrow stats
-    const books = await Book.find({}).select('borrowCount availableCopies totalCopies');
-    let totalBorrows = 0;
-    let availableCopiesSum = 0;
-    let totalCopiesSum = 0;
-    books.forEach(b => {
-      totalBorrows += (b.borrowCount || 0);
-      availableCopiesSum += (b.availableCopies || 0);
-      totalCopiesSum += (b.totalCopies || 0);
+    // Aggregate download and reading stats from users
+    const users = await User.find({ isDeleted: { $ne: true } }).select('downloads totalBooksRead studyHours downloadedResources');
+    let totalDownloads = 0;
+    let totalBooksRead = 0;
+    let totalStudyHours = 0;
+    users.forEach(u => {
+      totalDownloads += (u.downloads?.length || 0) + (u.downloadedResources || 0);
+      totalBooksRead += (u.totalBooksRead || 0);
+      totalStudyHours += (u.studyHours || 0);
     });
+
+    // Also check Activity model if it exists
+    let recentActivities = [];
+    try {
+      const Activity = require('../models/Activity');
+      recentActivities = await Activity.find({})
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate('user', 'name email')
+        .populate('book', 'title')
+        .lean();
+    } catch (e) {
+      // Activity model might not exist
+    }
 
     const recentUsers = await User.find({ isDeleted: { $ne: true } })
       .sort({ createdAt: -1 })
@@ -302,15 +316,15 @@ router.get('/dashboard-stats', async (req, res) => {
         totalUsers,
         verifiedUsers,
         totalBooks,
-        totalBorrows,
-        availableCopiesSum,
-        totalCopiesSum,
+        totalDownloads,
+        totalBooksRead,
+        totalStudyHours: Math.round(totalStudyHours * 10) / 10, // Round to 1 decimal
         userGrowth: 12, // Placeholder
-        revenueGrowth: 8,
         todayVisits: Math.floor(Math.random() * 50) + 50 // placeholder until activity tracking is added
       },
       recentUsers,
       recentBooks,
+      recentActivities,
       systemStatus
     });
   } catch (err) {
@@ -550,7 +564,7 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
   try {
     const {
       title, author, isbn, category, description, totalCopies = 1, availableCopies = 1, publisher, publishedYear,
-      resourceType, examYear, examBoard
+      resourceType, customResourceType, examYear, examBoard
     } = req.body
 
     if (!title || !author || !category) return res.status(400).json({ message: 'Missing required fields: title, author, category' })
@@ -659,6 +673,7 @@ router.post('/books', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'fi
       publisher, publishedYear: publishedYear ? Number(publishedYear) : undefined,
       coverUrl, fileUrl,
       resourceType: resourceType || 'textbook',
+      customResourceType: resourceType === 'other' ? customResourceType : undefined,
       examYear, examBoard: examBoard || 'UNEB'
     })
 
@@ -733,7 +748,7 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
 
     const {
       title, author, isbn, category, description, totalCopies, availableCopies, publisher, publishedYear,
-      resourceType, examYear, examBoard
+      resourceType, customResourceType, examYear, examBoard
     } = req.body
 
     // Update scalar fields if provided
@@ -747,6 +762,11 @@ router.put('/books/:id', upload.fields([{ name: 'cover', maxCount: 1 }, { name: 
     if (publisher !== undefined) book.publisher = publisher
     if (publishedYear !== undefined && publishedYear !== '') book.publishedYear = Number(publishedYear)
     if (resourceType) book.resourceType = resourceType
+    if (resourceType === 'other' && customResourceType) {
+      book.customResourceType = customResourceType
+    } else if (resourceType && resourceType !== 'other') {
+      book.customResourceType = undefined
+    }
     if (examYear !== undefined) book.examYear = examYear
     if (examBoard !== undefined) book.examBoard = examBoard
 

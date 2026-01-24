@@ -9,22 +9,26 @@ const Login_page = () => {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { setUser } = useAuth()
 
-  // Handle OAuth callback errors
+  // Handle OAuth callback errors and verification success
   useEffect(() => {
     const errorParam = searchParams.get('error')
     const verifiedParam = searchParams.get('verified')
 
     if (verifiedParam === 'true') {
       setError('') // Clear any errors
-      // Could add success state here if needed
+      setSuccessMessage('✅ Email verified successfully! Please log in with your credentials to continue.')
+      // Clean up URL after showing message
+      window.history.replaceState({}, document.title, '/auth/login')
     }
 
     if (errorParam) {
+      setSuccessMessage('') // Clear success message
       if (errorParam === 'google_auth_failed') {
         setError('Google sign-in failed. Please try again.')
       } else if (errorParam === 'auth_failed') {
@@ -133,6 +137,18 @@ const Login_page = () => {
             </button>
           </div>
         </div>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-green-700 text-sm font-medium flex items-center">
+              <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              {successMessage}
+            </p>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (

@@ -37,6 +37,7 @@ const UserSchema = new mongoose.Schema({
     marketing: { type: Boolean, default: false }
   },
   readingStreak: { type: Number, default: 0 },
+  lastReadDate: { type: Date, default: null },
   totalBooksRead: { type: Number, default: 0 },
   studyHours: { type: Number, default: 0 },
   downloadedResources: { type: Number, default: 0 },

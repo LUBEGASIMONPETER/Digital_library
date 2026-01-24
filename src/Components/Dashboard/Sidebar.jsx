@@ -57,8 +57,8 @@ const Sidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse = () 
   }, [location.pathname])
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transform transition-all duration-300 ease-in-out ${mobileTransformClass} md:translate-x-0 ${desktopWidthClass}`}>
-      <div className="h-full flex flex-col">
+    <aside className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transform transition-all duration-300 ease-in-out ${mobileTransformClass} md:translate-x-0 ${desktopWidthClass}`} style={{ overflow: 'visible' }}>
+      <div className="h-full flex flex-col overflow-hidden">
         {/* Header */}
         <div className={`flex items-center p-6 border-b border-gray-200 ${collapsed ? 'justify-center' : 'justify-between'}`}>
           {!collapsed && (
@@ -89,7 +89,7 @@ const Sidebar = ({ collapsed = false, mobileOpen = false, onToggleCollapse = () 
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = item.exact 
               ? location.pathname === item.to 
@@ -188,7 +188,7 @@ function SidebarLink({ to, label, icon, collapsed, isActive }) {
       
       {/* Tooltip for collapsed state */}
       {collapsed && (
-        <div className="absolute left-full ml-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 shadow-lg">
+        <div className="absolute left-full ml-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-[9999] shadow-lg pointer-events-none">
           {label}
           <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-0 h-0 border-t-4 border-b-4 border-l-0 border-r-4 border-r-blue-600 border-t-transparent border-b-transparent border-l-transparent"></div>
         </div>

@@ -331,6 +331,10 @@ router.post('/download/:bookId', requireAuth, async (req, res) => {
     const { bookId } = req.params;
     let newAchievements = [];
     
+    // Always increment the book's download count
+    const Book = require('../models/Book');
+    await Book.findByIdAndUpdate(bookId, { $inc: { downloadCount: 1 } });
+    
     if (!user.downloads.includes(bookId)) {
       user.downloads.push(bookId);
       user.downloadedResources = (user.downloadedResources || 0) + 1;
@@ -384,6 +388,41 @@ router.post('/log-activity', requireAuth, async (req, res) => {
     
     await activity.save();
 
+    // Update reading streak logic
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const lastRead = user.lastReadDate ? new Date(user.lastReadDate) : null;
+    if (lastRead) {
+      lastRead.setHours(0, 0, 0, 0);
+    }
+    
+    if (type === 'read' || durationMinutes > 0 || pagesRead > 0) {
+      if (!lastRead) {
+        // First time reading - start the streak!
+        user.readingStreak = 1;
+        user.lastReadDate = new Date();
+        console.log(`Started reading streak for user ${user.email}: 1 day`);
+      } else {
+        const daysDiff = Math.floor((today - lastRead) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff === 0) {
+          // Same day - streak already counted, just update lastReadDate
+          user.lastReadDate = new Date();
+        } else if (daysDiff === 1) {
+          // Consecutive day - increment streak!
+          user.readingStreak = (user.readingStreak || 0) + 1;
+          user.lastReadDate = new Date();
+          console.log(`Reading streak continued for user ${user.email}: ${user.readingStreak} days`);
+        } else {
+          // Streak broken - start over
+          user.readingStreak = 1;
+          user.lastReadDate = new Date();
+          console.log(`Reading streak reset for user ${user.email}: 1 day (was broken)`);
+        }
+      }
+    }
+
     // Also update user's lifetime stats
     let newAchievements = [];
     if (pagesRead && pagesRead > 0) {
@@ -398,10 +437,18 @@ router.post('/log-activity', requireAuth, async (req, res) => {
       const timeAchievements = await checkAndUnlockAchievements(user._id, 'study_time');
       newAchievements = [...newAchievements, ...timeAchievements];
     }
+    
+    // Check for streak achievements
+    if (user.readingStreak >= 3 || user.readingStreak >= 7 || user.readingStreak >= 14 || user.readingStreak >= 30) {
+      const streakAchievements = await checkAndUnlockAchievements(user._id, 'streak');
+      newAchievements = [...newAchievements, ...streakAchievements];
+    }
+    
     await user.save();
 
-    res.json({ success: true, newAchievements });
+    res.json({ success: true, readingStreak: user.readingStreak, newAchievements });
   } catch (err) {
+    console.error('Log activity error:', err);
     res.status(500).json({ message: 'Error logging activity' });
   }
 });

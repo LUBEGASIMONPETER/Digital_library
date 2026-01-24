@@ -31,13 +31,12 @@ const AdminHome = () => {
   const [data, setData] = useState({
     stats: {
       totalUsers: 0,
-      activeLoans: 0,
-      pendingTickets: 0,
+      totalDownloads: 0,
+      totalBooksRead: 0,
       availableBooks: 0,
-      revenue: 0,
+      totalStudyHours: 0,
       todayVisits: 0,
-      userGrowth: 12,
-      revenueGrowth: 8
+      userGrowth: 12
     },
     recentActivity: [],
     systemStatus: []
@@ -53,13 +52,12 @@ const AdminHome = () => {
         setData({
           stats: {
             totalUsers: result.stats.totalUsers,
-            activeLoans: result.stats.totalBorrows,
-            pendingTickets: result.stats.totalBorrows > 0 ? 2 : 0,
+            totalDownloads: result.stats.totalDownloads || 0,
+            totalBooksRead: result.stats.totalBooksRead || 0,
             availableBooks: result.stats.totalBooks,
-            revenue: result.stats.totalCopiesSum * 10,
+            totalStudyHours: result.stats.totalStudyHours || 0,
             todayVisits: result.stats.todayVisits,
-            userGrowth: result.stats.userGrowth,
-            revenueGrowth: result.stats.revenueGrowth
+            userGrowth: result.stats.userGrowth
           },
           recentActivity: [
             ...(result.recentUsers || []).map(u => ({
@@ -79,8 +77,17 @@ const AdminHome = () => {
               time: b.createdAt,
               type: 'success',
               icon: BookOpen
+            })),
+            ...(result.recentActivities || []).map(a => ({
+              id: `a-${a._id}`,
+              user: a.user?.name || 'User',
+              action: a.type === 'download' ? 'downloaded' : 'read',
+              book: a.book?.title || 'a book',
+              time: a.createdAt,
+              type: a.type === 'download' ? 'success' : 'info',
+              icon: a.type === 'download' ? Download : Eye
             }))
-          ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 5),
+          ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 8),
           systemStatus: [
             { name: 'API Server', status: result.systemStatus.api, icon: Server, color: 'bg-green-500' },
             { name: 'Database', status: result.systemStatus.database, icon: Database, color: 'bg-green-500' },
@@ -144,7 +151,7 @@ const AdminHome = () => {
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
             <StatCard 
               title="Total Users"
               value={statsData.totalUsers.toLocaleString()}
@@ -155,13 +162,11 @@ const AdminHome = () => {
               color="bg-blue-50"
               iconColor="text-blue-600"
             />
-            
-            
 
             <StatCard 
               title="Available Books"
               value={statsData.availableBooks.toLocaleString()}
-              change="Stock"
+              change="Library"
               trend="neutral"
               icon={<Database className="w-6 h-6" />}
               description="Unique titles"
@@ -170,19 +175,37 @@ const AdminHome = () => {
             />
 
             <StatCard 
-              title="Today's Visits"
-              value={statsData.todayVisits}
-              change="Active"
-              trend="neutral"
-              icon={<Eye className="w-6 h-6" />}
-              description="Estimated traffic"
+              title="Total Downloads"
+              value={statsData.totalDownloads.toLocaleString()}
+              change="All time"
+              trend="up"
+              icon={<Download className="w-6 h-6" />}
+              description="User downloads"
+              color="bg-green-50"
+              iconColor="text-green-600"
+            />
+
+            <StatCard 
+              title="Books Read"
+              value={statsData.totalBooksRead.toLocaleString()}
+              change="All time"
+              trend="up"
+              icon={<BookOpen className="w-6 h-6" />}
+              description="Reading activity"
+              color="bg-purple-50"
+              iconColor="text-purple-600"
+            />
+
+            <StatCard 
+              title="Study Hours"
+              value={`${statsData.totalStudyHours}h`}
+              change="Total"
+              trend="up"
+              icon={<Clock className="w-6 h-6" />}
+              description="User study time"
               color="bg-cyan-50"
               iconColor="text-cyan-600"
             />
-
-            
-
-            
           </div>
         )}
 

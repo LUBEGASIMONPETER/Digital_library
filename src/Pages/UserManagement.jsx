@@ -1149,12 +1149,12 @@ const ViewProfileModal = ({ user, onClose }) => {
             <span className="text-gray-500 text-sm">Email</span>
             <span className="text-gray-900 font-medium text-sm">{user.email}</span>
           </div>
-          <div className="flex justify-between py-2 border-b border-gray-50">
+          {/* <div className="flex justify-between py-2 border-b border-gray-50">
             <span className="text-gray-500 text-sm">Status</span>
             <span className={`text-sm font-semibold capitalize ${
               user.status === 'active' ? 'text-green-600' : 'text-red-600'
             }`}>{user.status}</span>
-          </div>
+          </div> */}
           <div className="flex justify-between py-2 border-b border-gray-50">
             <span className="text-gray-500 text-sm">Joined Date</span>
             <span className="text-gray-900 font-medium text-sm">

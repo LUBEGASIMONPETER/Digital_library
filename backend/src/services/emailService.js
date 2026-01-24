@@ -284,9 +284,14 @@ async function sendGenericEmail(to, subject, html) {
     // Always try to send, even if mailer verification failed initially
     // Verification failure might be temporary (network issue, DNS delay, etc.)
     
+    // Format sender with display name: "The Digital Library <email@example.com>"
+    const senderEmail = process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@digitallibrary.com'
+    const senderName = 'The Digital Library'
+    const from = `${senderName} <${senderEmail}>`
+    
     try {
         const info = await sendWithProvider({
-            from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@digitallibrary.com',
+            from,
             to,
             subject,
             html
@@ -297,6 +302,7 @@ async function sendGenericEmail(to, subject, html) {
         // If actual sending fails, log it for debugging
         console.error(`Email delivery failed to ${to}:`, err.message);
         console.log(`====== EMAIL SIMULATION (DELIVERY FAILED) ======`);
+        console.log(`From: ${from}`);
         console.log(`To: ${to}`);
         console.log(`Subject: ${subject}`);
         console.log(`Content length: ${html?.length || 0} chars`);

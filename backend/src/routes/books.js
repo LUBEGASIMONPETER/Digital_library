@@ -22,6 +22,9 @@ router.get('/', optionalAuth, async (req, res) => {
         level: book.level,
         pageCount: book.pageCount,
         createdAt: book.createdAt,
+        resourceType: book.resourceType,
+        customResourceType: book.customResourceType,
+        downloadCount: book.downloadCount || 0,
       };
       
       // Only include file URL for authenticated users

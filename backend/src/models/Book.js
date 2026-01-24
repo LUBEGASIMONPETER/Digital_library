@@ -14,8 +14,10 @@ const BookSchema = new mongoose.Schema({
   fileUrl: { type: String },
   addedDate: { type: Date, default: Date.now },
   borrowCount: { type: Number, default: 0 },
+  downloadCount: { type: Number, default: 0 },
   status: { type: String, default: 'available' },
-  resourceType: { type: String, enum: ['textbook', 'past_paper', 'reference', 'handbook', 'study_guide'], default: 'textbook' },
+  resourceType: { type: String, default: 'textbook' },
+  customResourceType: { type: String },
   examYear: { type: String },
   examBoard: { type: String, default: 'UNEB' }
 }, { timestamps: true })

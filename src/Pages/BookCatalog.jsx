@@ -34,13 +34,14 @@ const A_LEVEL_SUBJECTS = [
   'Fine Art', 'Commerce', 'French', 'Christian Religious Education'
 ]
 
-const RESOURCE_TYPES = ['textbook', 'past_paper', 'reference', 'handbook', 'study_guide']
+const RESOURCE_TYPES = ['textbook', 'past_paper', 'reference', 'handbook', 'study_guide', 'other']
 const RESOURCE_TYPE_LABELS = {
   textbook: 'Textbook',
   past_paper: 'Past Paper',
   reference: 'Reference',
   handbook: 'Handbook',
-  study_guide: 'Study Guide'
+  study_guide: 'Study Guide',
+  other: 'Other'
 }
 
 const BookCatalog = () => {
@@ -73,6 +74,7 @@ const BookCatalog = () => {
     bookFile: null,
     fileUrl: '',
     resourceType: 'textbook',
+    customResourceType: '',
     examYear: '',
     examBoard: 'UNEB'
   })
@@ -111,6 +113,7 @@ const BookCatalog = () => {
         fileUrl: b.fileUrl || '',
         addedDate: b.addedDate || b.createdAt || '',
         resourceType: b.resourceType || 'textbook',
+        customResourceType: b.customResourceType || '',
         examYear: b.examYear || '',
         examBoard: b.examBoard || 'UNEB'
       }))
@@ -314,6 +317,9 @@ const BookCatalog = () => {
       if (newBook.coverFile) form.append('cover', newBook.coverFile)
       if (newBook.bookFile) form.append('file', newBook.bookFile)
       form.append('resourceType', newBook.resourceType)
+      if (newBook.resourceType === 'other' && newBook.customResourceType) {
+        form.append('customResourceType', newBook.customResourceType)
+      }
       if (newBook.examYear) form.append('examYear', newBook.examYear)
       if (newBook.examBoard) form.append('examBoard', newBook.examBoard)
 
@@ -345,6 +351,7 @@ const BookCatalog = () => {
         bookFile: null,
         fileUrl: '',
         resourceType: 'textbook',
+        customResourceType: '',
         examYear: '',
         examBoard: 'UNEB'
       })
@@ -378,6 +385,9 @@ const BookCatalog = () => {
       if (bookToEdit.coverFile) form.append('cover', bookToEdit.coverFile)
       if (bookToEdit.bookFile) form.append('file', bookToEdit.bookFile)
       form.append('resourceType', bookToEdit.resourceType)
+      if (bookToEdit.resourceType === 'other' && bookToEdit.customResourceType) {
+        form.append('customResourceType', bookToEdit.customResourceType)
+      }
       if (bookToEdit.examYear) form.append('examYear', bookToEdit.examYear)
       if (bookToEdit.examBoard) form.append('examBoard', bookToEdit.examBoard)
 
@@ -937,7 +947,7 @@ const ResourceModal = ({ mode, book, onChange, onSubmit, onClose, coverPreview, 
                 <Package className="w-4 h-4 text-gray-400" />
                 Resource Type <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
                 {RESOURCE_TYPES.map(type => (
                   <button
                     key={type}
@@ -953,6 +963,20 @@ const ResourceModal = ({ mode, book, onChange, onSubmit, onClose, coverPreview, 
                   </button>
                 ))}
               </div>
+              
+              {/* Custom Resource Type Input */}
+              {book.resourceType === 'other' && (
+                <div className="mt-3">
+                  <input
+                    type="text"
+                    required
+                    value={book.customResourceType || ''}
+                    onChange={(e) => onChange({...book, customResourceType: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                    placeholder="Enter custom resource type (e.g., Lecture Notes, Lab Manual)"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Basic Info Grid */}

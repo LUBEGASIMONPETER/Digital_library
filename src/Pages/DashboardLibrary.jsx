@@ -12,8 +12,18 @@ import {
   Star,
   ChevronDown,
   BookMarked,
-  User
+  User,
+  FileText
 } from 'lucide-react'
+
+const RESOURCE_TYPE_LABELS = {
+  textbook: 'Textbook',
+  past_paper: 'Past Paper',
+  reference: 'Reference',
+  handbook: 'Handbook',
+  study_guide: 'Study Guide',
+  other: 'Other'
+}
 
 const DashboardLibrary = () => {
   const [books, setBooks] = useState([])
@@ -23,7 +33,8 @@ const DashboardLibrary = () => {
     class: '',
     subject: '',
     author: '',
-    search: ''
+    search: '',
+    resourceType: ''
   })
 
   const [sortBy, setSortBy] = useState('popular')
@@ -53,12 +64,13 @@ const DashboardLibrary = () => {
           fileUrl: b.fileUrl || b.file || '',
           category: b.category || '',
           readers: b.borrowCount || 0,
-          downloads: b.borrowCount || 0,
+          downloads: b.downloadCount || 0,
           rating: null,
           pages: b.pages || null,
           subject: b.category || '',
           class: b.level || '',
           resourceType: b.resourceType || 'textbook',
+          customResourceType: b.customResourceType || '',
         }))
         if (mounted) setBooks(mapped)
       } catch (err) {
@@ -75,6 +87,7 @@ const DashboardLibrary = () => {
   const uniqueClasses = [...new Set(books.map(book => book.class).filter(Boolean))]
   const uniqueSubjects = [...new Set(books.map(book => book.subject).filter(Boolean))]
   const uniqueAuthors = [...new Set(books.map(book => book.author).filter(Boolean))]
+  const uniqueResourceTypes = [...new Set(books.map(book => book.resourceType).filter(Boolean))]
 
   // Filter and sort books
   const filteredBooks = useMemo(() => {
@@ -82,12 +95,13 @@ const DashboardLibrary = () => {
       const matchesClass = !filters.class || book.class === filters.class
       const matchesSubject = !filters.subject || book.subject === filters.subject
       const matchesAuthor = !filters.author || book.author === filters.author
+      const matchesResourceType = !filters.resourceType || book.resourceType === filters.resourceType
       const matchesSearch = !filters.search || 
         book.title.toLowerCase().includes(filters.search.toLowerCase()) ||
         book.description.toLowerCase().includes(filters.search.toLowerCase()) ||
         book.author.toLowerCase().includes(filters.search.toLowerCase())
 
-      return matchesClass && matchesSubject && matchesAuthor && matchesSearch
+      return matchesClass && matchesSubject && matchesAuthor && matchesSearch && matchesResourceType
     })
 
     // Sort books
@@ -123,12 +137,13 @@ const DashboardLibrary = () => {
       class: '',
       subject: '',
       author: '',
-      search: ''
+      search: '',
+      resourceType: ''
     })
     setSortBy('popular')
   }
 
-  const hasActiveFilters = filters.class || filters.subject || filters.author || filters.search
+  const hasActiveFilters = filters.class || filters.subject || filters.author || filters.search || filters.resourceType
 
   if (loading) {
     return (
@@ -223,7 +238,7 @@ const DashboardLibrary = () => {
         {/* Expandable Filters */}
         {showFilters && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
                   <BookMarked className="w-4 h-4 text-gray-400" />
@@ -271,6 +286,23 @@ const DashboardLibrary = () => {
                   <option value="">All Authors/Examiners</option>
                   {uniqueAuthors.map(author => (
                     <option key={author} value={author}>{author}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-gray-400" />
+                  Material Type
+                </label>
+                <select
+                  value={filters.resourceType}
+                  onChange={(e) => handleFilterChange('resourceType', e.target.value)}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200"
+                >
+                  <option value="">All Types</option>
+                  {uniqueResourceTypes.map(type => (
+                    <option key={type} value={type}>{RESOURCE_TYPE_LABELS[type] || type}</option>
                   ))}
                 </select>
               </div>
@@ -324,6 +356,18 @@ const DashboardLibrary = () => {
                 <button 
                   onClick={() => handleFilterChange('search', '')}
                   className="ml-1 hover:text-gray-900 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {filters.resourceType && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
+                <FileText className="w-3 h-3" />
+                {RESOURCE_TYPE_LABELS[filters.resourceType] || filters.resourceType}
+                <button 
+                  onClick={() => handleFilterChange('resourceType', '')}
+                  className="ml-1 hover:text-amber-900 transition-colors"
                 >
                   <X className="w-3 h-3" />
                 </button>
