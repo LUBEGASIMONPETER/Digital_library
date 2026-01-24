@@ -281,26 +281,31 @@ async function sendAccountActionEmail(to, opts = {}) {
  * Private helper to handle the actual sending and logging
  */
 async function sendGenericEmail(to, subject, html) {
-    if (!isMailerReady()) {
-        console.log(`====== EMAIL SIMULATION (MAILER NOT READY) ======`);
-        console.log(`To: ${to}`);
-        console.log(`Subject: ${subject}`);
-        console.log(`Content length: ${html?.length || 0} chars`);
-        console.log(`===================================================`);
-        return { logged: true };
-    }
-
+    // Always try to send, even if mailer verification failed initially
+    // Verification failure might be temporary (network issue, DNS delay, etc.)
+    
     try {
         const info = await sendWithProvider({
-            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+            from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@digitallibrary.com',
             to,
             subject,
             html
         });
+        console.log(`Email sent successfully to ${to}: ${subject}`);
         return info;
     } catch (err) {
+        // If actual sending fails, log it for debugging
         console.error(`Email delivery failed to ${to}:`, err.message);
-        throw err;
+        console.log(`====== EMAIL SIMULATION (DELIVERY FAILED) ======`);
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Content length: ${html?.length || 0} chars`);
+        console.log(`Error: ${err.message}`);
+        console.log(`===================================================`);
+        
+        // Don't throw - allow registration/verification to continue
+        // even if email fails (users can still verify via code or resend)
+        return { logged: true, error: err.message };
     }
 }
 

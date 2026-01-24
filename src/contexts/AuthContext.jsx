@@ -50,22 +50,34 @@ export function AuthProvider({ children }) {
           const decoded = decodeJwt(urlToken)
           
           if (decoded && decoded.id) {
-            // Fetch full user profile from backend
-            const apiUrl = apiBase() || 'http://localhost:5000'
-            const res = await fetch(`${apiUrl}/api/users/profile`, {
-              headers: {
-                'Authorization': `Bearer ${urlToken}`,
-                'X-User-ID': decoded.id
-              }
-            })
+            // Store user from decoded token immediately to prevent logout
+            const userFromToken = {
+              id: decoded.id,
+              email: decoded.email,
+              role: decoded.role,
+              name: decoded.name,
+              token: urlToken
+            }
+            setUser(userFromToken)
             
-            if (res.ok) {
-              const userData = await res.json()
-              const userWithId = { ...userData, id: userData._id || userData.id || decoded.id, token: urlToken }
-              setUser(userWithId)
-            } else {
-              // Token might be expired or invalid
-              console.error('Failed to fetch user profile with OAuth token')
+            // Fetch full user profile from backend to get complete data
+            try {
+              const apiUrl = apiBase() || 'http://localhost:5000'
+              const res = await fetch(`${apiUrl}/api/users/profile`, {
+                headers: {
+                  'Authorization': `Bearer ${urlToken}`,
+                  'X-User-ID': decoded.id
+                }
+              })
+              
+              if (res.ok) {
+                const userData = await res.json()
+                const userWithId = { ...userData, id: userData._id || userData.id || decoded.id, token: urlToken }
+                setUser(userWithId)
+              }
+            } catch (profileErr) {
+              console.error('Failed to fetch full profile, using decoded token data:', profileErr)
+              // Keep the user from decoded token
             }
           }
           

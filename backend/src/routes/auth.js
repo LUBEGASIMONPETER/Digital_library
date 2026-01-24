@@ -36,16 +36,25 @@ router.get('/google', (req, res, next) => {
 router.get('/google/callback', 
   passport.authenticate('google', { 
     failureRedirect: `${process.env.FRONTEND_URL || 'https://thedigitallibrarynewapp.netlify.app'}/auth/login?error=google_auth_failed`,
-    session: false 
+    session: true // Keep session for auth
   }),
   (req, res) => {
     try {
+      if (!req.user) {
+        console.error('Google callback: No user in request');
+        const frontendUrl = process.env.FRONTEND_URL || 'https://thedigitallibrarynewapp.netlify.app';
+        return res.redirect(`${frontendUrl}/auth/login?error=auth_failed`);
+      }
+
+      console.log('Google OAuth successful for user:', req.user.email);
+
       // Generate JWT token for the authenticated user
       const token = jwt.sign(
         { 
-          id: req.user._id, 
+          id: req.user._id.toString(), 
           email: req.user.email, 
-          role: req.user.role 
+          role: req.user.role,
+          name: req.user.name
         },
         process.env.JWT_SECRET || 'fallback_jwt_secret',
         { expiresIn: '7d' }
@@ -57,6 +66,7 @@ router.get('/google/callback',
         ? `${frontendUrl}/admin?token=${token}`
         : `${frontendUrl}/dashboard?token=${token}`;
       
+      console.log('Redirecting to:', redirectUrl);
       res.redirect(redirectUrl);
     } catch (err) {
       console.error('Google callback error:', err);

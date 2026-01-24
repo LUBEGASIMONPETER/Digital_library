@@ -5,14 +5,21 @@ const { checkAndUnlockAchievements } = require('../services/achievementService')
 const { sendWelcomeEmail } = require('../services/emailService');
 
 passport.serializeUser((user, done) => {
-  done(null, user.id);
+  console.log('Serializing user:', user._id || user.id);
+  done(null, user._id || user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
   try {
+    console.log('Deserializing user:', id);
     const user = await User.findById(id);
+    if (!user) {
+      console.log('User not found during deserialization:', id);
+      return done(null, false);
+    }
     done(null, user);
   } catch (err) {
+    console.error('Error deserializing user:', err);
     done(err, null);
   }
 });
@@ -31,10 +38,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     scope: ['profile', 'email']
   }, async (accessToken, refreshToken, profile, done) => {
     try {
+      console.log('Google OAuth callback for profile:', profile.id, profile.emails?.[0]?.value);
+      
       // Check if user already exists with this Google ID
       let user = await User.findOne({ googleId: profile.id });
       
       if (user) {
+        console.log('Existing Google user found:', user.email);
         return done(null, user);
       }
 
@@ -44,16 +54,19 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         user = await User.findOne({ email: email.toLowerCase() });
         if (user) {
           // Link Google account to existing user
+          console.log('Linking Google account to existing user:', user.email);
           user.googleId = profile.id;
           if (!user.avatarUrl && profile.photos && profile.photos[0]) {
             user.avatarUrl = profile.photos[0].value;
           }
+          user.isVerified = true; // Auto-verify when linking Google
           await user.save();
           return done(null, user);
         }
       }
 
       // Create new user
+      console.log('Creating new Google user:', email);
       const newUser = new User({
         googleId: profile.id,
         name: profile.displayName || `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim() || 'Google User',
@@ -65,19 +78,20 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       });
 
       await newUser.save();
+      console.log('New Google user created:', newUser.email, newUser._id);
 
       // Send welcome email for newly created Google user
       try {
         await sendWelcomeEmail(newUser.email, newUser.name, true);
       } catch (mailErr) {
-        console.error('Welcome email failed for Google user:', mailErr);
+        console.error('Welcome email failed for Google user:', mailErr.message);
       }
 
       // Unlock "The Initiate" achievement for creating an account
       try {
         await checkAndUnlockAchievements(newUser._id, 'signup');
       } catch (achErr) {
-        console.error('Achievement check failed:', achErr);
+        console.error('Achievement check failed:', achErr.message);
       }
 
       done(null, newUser);
