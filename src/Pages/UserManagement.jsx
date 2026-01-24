@@ -661,7 +661,6 @@ const UserManagement = () => {
                 </th>
                 <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">User</th>
                 <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Role</th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
                 <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Join Date</th>
                 <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
               </tr>
@@ -865,15 +864,6 @@ const UserRow = ({ user, index, totalInPage, selected, onSelect, onDelete, onCha
           <option value="librarian">Librarian</option>
           <option value="admin">Admin</option>
         </select>
-      </td>
-      
-      <td className="px-3 py-4">
-        <div className="flex items-center gap-2">
-          {getStatusIcon(user.status)}
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
-            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-          </span>
-        </div>
       </td>
       
       <td className="px-3 py-4 text-sm text-gray-900 flex items-center gap-2 whitespace-nowrap">

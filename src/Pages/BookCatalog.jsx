@@ -64,6 +64,7 @@ const BookCatalog = () => {
     author: '',
     isbn: '',
     category: '',
+    customCategory: '',
     description: '',
     totalCopies: 1,
     availableCopies: 1,
@@ -103,6 +104,7 @@ const BookCatalog = () => {
         author: b.author,
         isbn: b.isbn || '',
         category: b.category,
+        customCategory: '',
         status: b.status || 'available',
         totalCopies: b.totalCopies || 1,
         availableCopies: b.availableCopies || b.totalCopies || 1,
@@ -306,7 +308,11 @@ const BookCatalog = () => {
       form.append('title', newBook.title)
       form.append('author', newBook.author)
       if (newBook.isbn) form.append('isbn', newBook.isbn)
-      form.append('category', newBook.category)
+      // Use custom category if provided, otherwise use selected category
+      const finalCategory = newBook.category === 'custom' && newBook.customCategory 
+        ? newBook.customCategory 
+        : newBook.category
+      form.append('category', finalCategory)
       if (newBook.description) form.append('description', newBook.description)
       form.append('totalCopies', String(newBook.totalCopies))
       form.append('availableCopies', String(newBook.availableCopies))
@@ -341,6 +347,7 @@ const BookCatalog = () => {
         author: '',
         isbn: '',
         category: '',
+        customCategory: '',
         description: '',
         totalCopies: 1,
         availableCopies: 1,
@@ -374,7 +381,11 @@ const BookCatalog = () => {
       form.append('title', bookToEdit.title)
       form.append('author', bookToEdit.author)
       if (bookToEdit.isbn !== undefined) form.append('isbn', bookToEdit.isbn)
-      form.append('category', bookToEdit.category)
+      // Use custom category if provided, otherwise use selected category
+      const finalCategory = bookToEdit.category === 'custom' && bookToEdit.customCategory 
+        ? bookToEdit.customCategory 
+        : bookToEdit.category
+      form.append('category', finalCategory)
       if (bookToEdit.description !== undefined) form.append('description', bookToEdit.description)
       form.append('totalCopies', String(bookToEdit.totalCopies))
       form.append('availableCopies', String(bookToEdit.availableCopies))
@@ -1054,16 +1065,35 @@ const ResourceModal = ({ mode, book, onChange, onSubmit, onClose, coverPreview, 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700">Category *</label>
                 <select
-                  required
-                  value={book.category}
-                  onChange={(e) => onChange({...book, category: e.target.value})}
+                  required={book.category !== 'custom'}
+                  value={book.category === 'custom' || !A_LEVEL_SUBJECTS.includes(book.category) ? 'custom' : book.category}
+                  onChange={(e) => {
+                    if (e.target.value === 'custom') {
+                      onChange({...book, category: 'custom', customCategory: ''})
+                    } else {
+                      onChange({...book, category: e.target.value, customCategory: ''})
+                    }
+                  }}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white appearance-none cursor-pointer"
                 >
                   <option value="">Select subject</option>
                   {A_LEVEL_SUBJECTS.map(sub => (
                     <option key={sub} value={sub}>{sub}</option>
                   ))}
+                  <option value="custom">Other (Custom Category)</option>
                 </select>
+                
+                {/* Custom category input */}
+                {(book.category === 'custom' || !A_LEVEL_SUBJECTS.includes(book.category)) && book.category && (
+                  <input
+                    type="text"
+                    required
+                    value={book.customCategory || (A_LEVEL_SUBJECTS.includes(book.category) ? '' : book.category)}
+                    onChange={(e) => onChange({...book, category: 'custom', customCategory: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white"
+                    placeholder="Enter custom category (e.g., Engineering, Law, Medicine)"
+                  />
+                )}
               </div>
 
               <div className="space-y-2">
