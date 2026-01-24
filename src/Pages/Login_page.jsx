@@ -14,60 +14,29 @@ const Login_page = () => {
   const [searchParams] = useSearchParams()
   const { setUser } = useAuth()
 
-  // Handle OAuth callback errors and success
+  // Handle OAuth callback errors
   useEffect(() => {
     const errorParam = searchParams.get('error')
-    const tokenParam = searchParams.get('token')
+    const verifiedParam = searchParams.get('verified')
+
+    if (verifiedParam === 'true') {
+      setError('') // Clear any errors
+      // Could add success state here if needed
+    }
 
     if (errorParam) {
       if (errorParam === 'google_auth_failed') {
         setError('Google sign-in failed. Please try again.')
-      } else {
+      } else if (errorParam === 'auth_failed') {
         setError('Authentication failed. Please try again.')
       }
       // Clean up URL
       window.history.replaceState({}, document.title, '/auth/login')
     }
-
-    // Handle token from Google OAuth callback (if redirected here with token)
-    if (tokenParam) {
-      handleOAuthToken(tokenParam)
-    }
+    
+    // Note: Token handling is done by AuthContext, not here
+    // This prevents race conditions and duplicate processing
   }, [searchParams])
-
-  // Handle OAuth token from URL
-  const handleOAuthToken = async (token) => {
-    setIsLoading(true)
-    try {
-      // Fetch user profile using the token
-      const res = await apiFetch('/api/users/profile', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'X-User-ID': 'pending' // Will be resolved from token
-        }
-      })
-      
-      if (res.ok) {
-        const userData = await res.json()
-        // Store user with the token
-        const userWithToken = { ...userData, token }
-        setUser(userWithToken)
-        
-        // Clean URL and redirect
-        window.history.replaceState({}, document.title, '/dashboard')
-        navigate('/dashboard')
-      } else {
-        setError('Failed to complete Google sign-in. Please try again.')
-        window.history.replaceState({}, document.title, '/auth/login')
-      }
-    } catch (err) {
-      console.error('OAuth token handling error:', err)
-      setError('Failed to complete sign-in. Please try again.')
-      window.history.replaceState({}, document.title, '/auth/login')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()

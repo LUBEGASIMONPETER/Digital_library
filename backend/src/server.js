@@ -112,7 +112,34 @@ async function start() {
 
   // serve uploaded files when Cloudinary is not configured (dev fallback)
   const uploadsPath = path.join(__dirname, '..', 'uploads')
-  app.use('/uploads', express.static(uploadsPath))
+  
+  // Serve uploads with proper CORS headers
+  app.use('/uploads', (req, res, next) => {
+    // Set CORS headers for file downloads
+    const origin = (req.get('origin') || '').replace(/\/$/, '')
+    if (effectiveAllowedOrigins.length > 0) {
+      if (origin && effectiveAllowedOrigins.some(a => origin === a || origin.startsWith(a))) {
+        res.setHeader('Access-Control-Allow-Origin', origin)
+      }
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204)
+    }
+    next()
+  }, express.static(uploadsPath, {
+    // Enable proper content-type headers for PDF files
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.pdf')) {
+        res.setHeader('Content-Type', 'application/pdf')
+        res.setHeader('Content-Disposition', 'inline')
+      }
+    }
+  }))
 
   // routes
   app.use('/api', require('./routes'));

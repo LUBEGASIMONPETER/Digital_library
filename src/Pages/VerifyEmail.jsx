@@ -48,12 +48,12 @@ export default function VerifyEmail() {
     verify()
   }, [token])
 
-  // Redirect to dashboard after successful verification
+  // Redirect to login after successful verification (don't auto-login)
   useEffect(() => {
     if (status !== 'success') return
     const t = setTimeout(() => {
-      navigate('/dashboard')
-    }, 3000) // Increased delay to allow reading success message
+      navigate('/auth/login?verified=true')
+    }, 3000)
     return () => clearTimeout(t)
   }, [status, navigate])
 

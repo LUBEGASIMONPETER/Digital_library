@@ -90,20 +90,32 @@ const BookCard = ({ book }) => {
 
     try {
       setDownloading(true)
-      // fetch the file as a blob and trigger a download to avoid CORS issues with download attribute
-      const res = await fetch(book.fileUrl)
-      if (!res.ok) throw new Error('Failed to fetch file')
+      addToast({ message: 'Preparing download...', type: 'info' })
+      
+      // Use apiFetch to ensure proper authentication and CORS handling
+      const res = await apiFetch(book.fileUrl, {
+        method: 'GET',
+      })
+      
+      if (!res.ok) {
+        throw new Error(`Failed to fetch file: ${res.status} ${res.statusText}`)
+      }
+      
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      // try to infer filename from URL, fallback to title
-      const inferred = (book.fileUrl.split('/').pop() || `${book.title || 'book'}.pdf`).split('?')[0]
-      a.download = inferred
+      
+      // Extract filename from URL or use book title
+      const filename = book.fileUrl.split('/').pop().split('?')[0] || `${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+      a.download = filename
+      
       document.body.appendChild(a)
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
+      
+      addToast({ message: 'Download started!', type: 'success' })
 
       // Record download in backend
       try {
@@ -121,11 +133,11 @@ const BookCard = ({ book }) => {
           }
         }
       } catch (e) {
-        // quiet fail for recording
+        console.error('Failed to record download:', e)
       }
     } catch (err) {
       console.error('Download failed', err)
-      alert('Download failed. Please try again or open the file to read instead.')
+      addToast({ message: `Download failed: ${err.message}`, type: 'error' })
     } finally {
       setDownloading(false)
     }

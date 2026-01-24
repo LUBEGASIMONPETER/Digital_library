@@ -112,23 +112,54 @@ const BookPage = () => {
   }
 
   const handleDownload = async () => {
-    if (!book.fileUrl) { alert('No file to download'); return }
+    if (!book.fileUrl) { 
+      addToast({ message: 'No file available to download', type: 'error' })
+      return 
+    }
+    
     try {
-      const res = await fetch(book.fileUrl)
-      if (!res.ok) throw new Error('Failed to fetch file')
+      addToast({ message: 'Preparing download...', type: 'info' })
+      
+      // Use apiFetch to ensure proper authentication and CORS handling
+      const res = await apiFetch(book.fileUrl, {
+        method: 'GET',
+      })
+      
+      if (!res.ok) {
+        throw new Error(`Failed to fetch file: ${res.status} ${res.statusText}`)
+      }
+      
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      const inferred = (book.fileUrl.split('/').pop() || `${book.title || 'book'}.pdf`).split('?')[0]
-      a.download = inferred
+      
+      // Extract filename from URL or use book title
+      const filename = book.fileUrl.split('/').pop().split('?')[0] || `${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+      a.download = filename
+      
       document.body.appendChild(a)
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
+      
+      addToast({ message: 'Download started!', type: 'success' })
+      
+      // Log download activity
+      try {
+        await apiFetch('/api/users/log-activity', {
+          method: 'POST',
+          body: JSON.stringify({
+            bookId: book._id,
+            type: 'download'
+          })
+        })
+      } catch (logErr) {
+        console.error('Failed to log download activity', logErr)
+      }
     } catch (err) {
       console.error('Download failed', err)
-      alert('Download failed')
+      addToast({ message: `Download failed: ${err.message}`, type: 'error' })
     }
   }
 

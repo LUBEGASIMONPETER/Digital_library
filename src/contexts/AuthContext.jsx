@@ -46,10 +46,12 @@ export function AuthProvider({ children }) {
         const urlToken = getTokenFromUrl()
         
         if (urlToken) {
+          console.log('Found OAuth token in URL, processing...')
           // Decode the token to get user info
           const decoded = decodeJwt(urlToken)
           
           if (decoded && decoded.id) {
+            console.log('Decoded token for user:', decoded.email)
             // Store user from decoded token immediately to prevent logout
             const userFromToken = {
               id: decoded.id,
@@ -73,17 +75,24 @@ export function AuthProvider({ children }) {
               if (res.ok) {
                 const userData = await res.json()
                 const userWithId = { ...userData, id: userData._id || userData.id || decoded.id, token: urlToken }
+                console.log('Full user profile loaded:', userWithId.email)
                 setUser(userWithId)
+              } else {
+                console.warn('Failed to fetch full profile, status:', res.status)
               }
             } catch (profileErr) {
               console.error('Failed to fetch full profile, using decoded token data:', profileErr)
               // Keep the user from decoded token
             }
+          } else {
+            console.error('Invalid token - could not decode')
           }
           
           // Clean the URL (remove token parameter)
           const cleanUrl = window.location.pathname
           window.history.replaceState({}, document.title, cleanUrl)
+        } else {
+          console.log('No OAuth token in URL, checking localStorage')
         }
       } catch (err) {
         console.error('Failed to initialize auth', err)
